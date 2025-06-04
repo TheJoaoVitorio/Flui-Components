@@ -1,0 +1,9 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<BorlandProject>
+	<Transactions>
+    <Transaction>2025/06/04 18:47:54.000.217,=rtl.dcp</Transaction>
+    <Transaction>2025/06/04 19:27:11.004,=rtl.dcp</Transaction>
+    <Transaction>2025/06/04 19:27:42.782,C:\Users\joaov\Documents\Embarcadero\Studio\Projects\FLUI.dproj=C:\Users\joaov\Documents\Embarcadero\Studio\Projects\Package1.dproj</Transaction>
+    <Transaction>2025/06/04 19:31:11.165,C:\Users\joaov\Desktop\Delphi\Flui-Components\FLUI_Components.dproj=C:\Users\joaov\Documents\Embarcadero\Studio\Projects\FLUI.dproj</Transaction>
+  </Transactions>
+</BorlandProject>
