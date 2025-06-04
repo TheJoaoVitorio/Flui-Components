@@ -3,4 +3,4 @@
 </p>
 
 # Flui-Components
-UI VCL Components Library for Delphi 
+VCL Components Library for Delphi 
