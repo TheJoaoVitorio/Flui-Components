@@ -30,7 +30,4 @@ package FLUI_Components;
 requires
   rtl;
 
-contains
-  FLUIButton in 'Source\FLUIButton.pas';
-
 end.
