@@ -28,8 +28,7 @@ package FLUI_Components;
 {$IMPLICITBUILD ON}
 
 requires
-  rtl,
-  vcl;
+  rtl;
 
 contains
   FLUIButton in 'Source\FLUIButton.pas';

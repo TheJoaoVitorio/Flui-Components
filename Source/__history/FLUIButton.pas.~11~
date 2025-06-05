@@ -3,9 +3,9 @@ unit FLUIButton;
 interface
 
 uses
-    System.SysUtils, System.Classes, System.UITypes, System.Math, // Ensure System.Classes is here
+  System.SysUtils, System.Classes, System.UITypes, System.Math,
   Winapi.Windows, Winapi.Messages,
-  Vcl.Controls, Vcl.Graphics, Vcl.StdCtrls, Vcl.Themes;
+  Vcl.Controls, Vcl.Graphics, Vcl.StdCtrls, Vcl.Themes; // Vcl.Themes para TPenStyle e TColor
 
 type
   // Declaração da classe TFLUIBorderSettings
@@ -532,49 +532,49 @@ begin
       case FButtonType of
         fbtContained:
           begin
+            // LCurrentFillColor já é FBorderSettings.BackgroundColor
             LCurrentTextColor := FContainedFontColor;
+            // A borda pode usar FBorderSettings.BorderColor ou ser da cor do fundo
+            // if LCurrentBorderThickness > 0 then LCurrentBorderColor := FBorderSettings.BorderColor;
           end;
         fbtOutline:
           begin
-            LCurrentFillColor := clNone;
-            LCurrentTextColor := FBorderSettings.BorderColor;
+            LCurrentFillColor := clNone; // Sem preenchimento
+            LCurrentTextColor := FBorderSettings.BorderColor; // Texto da cor da borda
             LCurrentBorderColor := FBorderSettings.BorderColor;
-            LCurrentBorderThickness := Max(1, FBorderSettings.BorderThickness);
+            LCurrentBorderThickness := Max(1, FBorderSettings.BorderThickness); // Outline deve ter borda
             LCurrentBorderStyle := FBorderSettings.BorderStyle;
           end;
         fbtDark:
           begin
             LCurrentFillColor := FDarkColor;
             LCurrentTextColor := FDarkFontColor;
-            LCurrentBorderColor := FDarkColor;
-            if LCurrentBorderThickness = 0 then LCurrentBorderThickness := 1;
+            LCurrentBorderColor := FDarkColor; // Borda da mesma cor para Dark
+            if LCurrentBorderThickness = 0 then LCurrentBorderThickness := 1; // Garante "borda"
           end;
         fbtLight:
           begin
             LCurrentFillColor := FLightColor;
             LCurrentTextColor := FLightFontColor;
-            LCurrentBorderColor := FLightColor;
-            if LCurrentBorderThickness = 0 then LCurrentBorderThickness := 1;
+            LCurrentBorderColor := FLightColor; // Borda da mesma cor para Light
+            if LCurrentBorderThickness = 0 then LCurrentBorderThickness := 1; // Garante "borda"
           end;
-      end; // End of case FButtonType
+      end;
 
       // 3. Aplicar modificações de Hover e Pressed
       var TempFillColor: TColor;
-      var TempBorderColor: TColor; // These are local to this block if declared here.
-                                  // Better to declare all Paint local vars at the top.
-                                  // Assuming LCurrentFillColor, LCurrentBorderColor are the ones being modified.
-
-      TempFillColor := LCurrentFillColor;   // Initialize Temp vars from current state
+      var TempBorderColor: TColor;
+      TempFillColor := LCurrentFillColor;
       TempBorderColor := LCurrentBorderColor;
 
       if FIsPressed and not (csDesigning in ComponentState) then
       begin
         if FPressedColor <> clNone then
           TempFillColor := FPressedColor
-        else if LCurrentFillColor <> clNone then
+        else if LCurrentFillColor <> clNone then // Não escurece se for transparente
           TempFillColor := DarkenColor(LCurrentFillColor, 20);
 
-        if FButtonType = fbtOutline then
+        if FButtonType = fbtOutline then // Em outline, o "pressionado" também escurece a borda
           TempBorderColor := DarkenColor(LCurrentBorderColor, 20);
       end
       else if FIsHovering and not (csDesigning in ComponentState) then
@@ -584,18 +584,17 @@ begin
         else if LCurrentFillColor <> clNone then
           TempFillColor := LightenColor(LCurrentFillColor, 15);
 
-        if FButtonType = fbtOutline then
+        if FButtonType = fbtOutline then // Em outline, o "hover" também clareia a borda
           TempBorderColor := LightenColor(LCurrentBorderColor, 15);
       end;
-
-      LCurrentFillColor := TempFillColor;     // Apply temp changes back
-      LCurrentBorderColor := TempBorderColor; // Apply temp changes back
+      LCurrentFillColor := TempFillColor;
+      LCurrentBorderColor := TempBorderColor;
 
       // Se o tipo for Outline, a cor do texto acompanha a cor da borda no hover/press
-      //if (FButtonType = fbtOutline and (FIsHovering or FIsPressed)) and not ((csDesigning in ComponentState)) then
-      //begin
-      //    LCurrentTextColor := LCurrentBorderColor; // LCurrentBorderColor here should be the one just modified
-      //end;
+      if FButtonType = fbtOutline and (FIsHovering or FIsPressed) and not (csDesigning in ComponentState) then
+      begin
+          LCurrentTextColor := LCurrentBorderColor;
+      end;
 
     end; // Fim do if Enabled
 
