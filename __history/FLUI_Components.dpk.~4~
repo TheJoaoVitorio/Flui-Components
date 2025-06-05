@@ -1,7 +1,6 @@
 package FLUI_Components;
 
 {$R *.res}
-{$R *.dres}
 {$IFDEF IMPLICITBUILDING This IFDEF should not be used by users}
 {$ALIGN 8}
 {$ASSERTIONS ON}
@@ -33,6 +32,6 @@ requires
   vcl;
 
 contains
-  FLUI.Button in 'Source\FLUI.Button.pas';
+  FLUIButton in 'Source\FLUIButton.pas';
 
 end.
