@@ -56,7 +56,7 @@ type
   TFLUIButtonType = (fbtContained, fbtOutline, fbtDark, fbtLight, fbtGradient);
   // Added fbtGradient
 
-  // Declara��o da classe TFLUIButton
+  
   TFLUIButton = class(TCustomControl)
   private
     FCaption: string;
