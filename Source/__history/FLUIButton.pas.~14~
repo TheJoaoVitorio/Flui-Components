@@ -3,21 +3,19 @@ unit FLUIButton;
 interface
 
 uses
-  System.SysUtils, System.Classes, System.UITypes, System.Math,
+    System.SysUtils, System.Classes, System.UITypes, System.Math, // Ensure System.Classes is here
   Winapi.Windows, Winapi.Messages,
-  Vcl.Controls, Vcl.Graphics, Vcl.StdCtrls, Vcl.Themes,
-
-  // Units para GDI+
-  Winapi.GDIPOBJ, Winapi.GDIPAPI, Winapi.GDIPUTIL;
+  Vcl.Controls, Vcl.Graphics, Vcl.StdCtrls, Vcl.Themes;
 
 type
   // Declaração da classe TFLUIBorderSettings
   TFLUIBorderSettings = class(TPersistent)
   private
     FOnChange: TNotifyEvent;
+
     FRadius: Integer;
     FBackgroundColor: TColor; // Cor principal de preenchimento do botão
-    FBorderColor: TColor; // Cor da borda
+    FBorderColor: TColor;     // Cor da borda
     FBorderThickness: Integer;
     FBorderStyle: TPenStyle;
 
@@ -34,14 +32,11 @@ type
     procedure Assign(Source: TPersistent); override;
 
     property Radius: Integer read FRadius write SetRadius default 8;
-    property BackgroundColor: TColor read FBackgroundColor
-      write SetBackgroundColor default clBtnFace;
-    property BorderColor: TColor read FBorderColor write SetBorderColor
-      default clWindowText;
-    property BorderThickness: Integer read FBorderThickness
-      write SetBorderThickness default 1;
-    property BorderStyle: TPenStyle read FBorderStyle write SetBorderStyle
-      default psSolid;
+    property BackgroundColor: TColor read FBackgroundColor write SetBackgroundColor default clBtnFace;
+    property BorderColor: TColor read FBorderColor write SetBorderColor default clWindowText;
+    property BorderThickness: Integer read FBorderThickness write SetBorderThickness default 1;
+    property BorderStyle: TPenStyle read FBorderStyle write SetBorderStyle default psSolid;
+
     property OnChange: TNotifyEvent read FOnChange write FOnChange;
   end;
 
@@ -54,6 +49,7 @@ type
     FCaption: string;
     FOnClick: TNotifyEvent;
     FButtonType: TFLUIButtonType;
+
     FContainedFontColor: TColor;
     FDarkColor: TColor;
     FDarkFontColor: TColor;
@@ -61,10 +57,13 @@ type
     FLightFontColor: TColor;
     FHoverColor: TColor;
     FPressedColor: TColor;
+
     FIsHovering: Boolean;
     FIsPressed: Boolean;
-    FBorderSettings: TFLUIBorderSettings;
 
+    FBorderSettings: TFLUIBorderSettings; // Objeto para configurações de borda/fundo
+
+    // Setters para propriedades publicadas
     procedure SetCaption(const Value: string);
     procedure SetButtonType(const Value: TFLUIButtonType);
     procedure SetContainedFontColor(const Value: TColor);
@@ -74,6 +73,8 @@ type
     procedure SetLightFontColor(const Value: TColor);
     procedure SetHoverColor(const Value: TColor);
     procedure SetPressedColor(const Value: TColor);
+
+    // Getters/Setters para propriedades delegadas a FBorderSettings
     function GetCornerRadius: Integer;
     procedure SetCornerRadius(const Value: Integer);
     function GetButtonFillColor: TColor;
@@ -82,56 +83,44 @@ type
     procedure SetButtonBorderColor(const Value: TColor);
     function GetButtonBorderThickness: Integer;
     procedure SetButtonBorderThickness(const Value: Integer);
-    function GetButtonDrawingBorderStyle: TPenStyle;
+    function GetButtonDrawingBorderStyle: TPenStyle; // Nome diferente para evitar conflito
     procedure SetButtonDrawingBorderStyle(const Value: TPenStyle);
 
   protected
     procedure Paint; override;
-    procedure MouseDown(Button: TMouseButton; Shift: TShiftState;
-      X, Y: Integer); override;
-    procedure MouseUp(Button: TMouseButton; Shift: TShiftState;
-      X, Y: Integer); override;
+    procedure MouseDown(Button: TMouseButton; Shift: TShiftState; X, Y: Integer); override;
+    procedure MouseUp(Button: TMouseButton; Shift: TShiftState; X, Y: Integer); override;
     procedure CMMouseEnter(var Message: TMessage); message CM_MOUSEENTER;
     procedure CMMouseLeave(var Message: TMessage); message CM_MOUSELEAVE;
-    procedure CMEnabledChanged(var Message: TMessage);
-      message CM_ENABLEDCHANGED;
-    procedure BorderSettingsChanged(Sender: TObject);
+    procedure CMEnabledChanged(var Message: TMessage); message CM_ENABLEDCHANGED;
 
-    function CreateGPRoundedRectPath(ARect: TGPRectF; ARadius: Single)
-      : TGPGraphicsPath;
+
+    procedure BorderSettingsChanged(Sender: TObject);
 
   public
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
   published
     property Caption: string read FCaption write SetCaption;
-    property ButtonType: TFLUIButtonType read FButtonType write SetButtonType
-      default TFLUIButtonType.fbtContained;
-    property CornerRadius: Integer read GetCornerRadius write SetCornerRadius
-      default 8;
-    property ButtonFillColor: TColor read GetButtonFillColor
-      write SetButtonFillColor default clBtnFace;
-    property ButtonBorderColor: TColor read GetButtonBorderColor
-      write SetButtonBorderColor default clWindowText;
-    property ButtonBorderThickness: Integer read GetButtonBorderThickness
-      write SetButtonBorderThickness default 1;
-    property ButtonDrawingBorderStyle: TPenStyle
-      read GetButtonDrawingBorderStyle write SetButtonDrawingBorderStyle
-      default psSolid;
-    property ContainedFontColor: TColor read FContainedFontColor
-      write SetContainedFontColor default clHighlightText;
-    property DarkColor: TColor read FDarkColor write SetDarkColor
-      default clBlack;
-    property DarkFontColor: TColor read FDarkFontColor write SetDarkFontColor
-      default clWhite;
-    property LightColor: TColor read FLightColor write SetLightColor
-      default clBtnFace;
-    property LightFontColor: TColor read FLightFontColor write SetLightFontColor
-      default clBtnText;
-    property HoverColor: TColor read FHoverColor write SetHoverColor
-      default clNone;
-    property PressedColor: TColor read FPressedColor write SetPressedColor
-      default clNone;
+    property ButtonType: TFLUIButtonType read FButtonType write SetButtonType default TFLUIButtonType.fbtContained;
+
+    // Novas propriedades publicadas delegando para FBorderSettings
+    property CornerRadius: Integer read GetCornerRadius write SetCornerRadius default 8;
+    property ButtonFillColor: TColor read GetButtonFillColor write SetButtonFillColor default clBtnFace;
+    property ButtonBorderColor: TColor read GetButtonBorderColor write SetButtonBorderColor default clWindowText;
+    property ButtonBorderThickness: Integer read GetButtonBorderThickness write SetButtonBorderThickness default 1;
+    property ButtonDrawingBorderStyle: TPenStyle read GetButtonDrawingBorderStyle write SetButtonDrawingBorderStyle default psSolid;
+
+    // Propriedades de cor de fonte e cores específicas de tipo (podem ser ajustadas para interagir com ButtonFillColor)
+    property ContainedFontColor: TColor read FContainedFontColor write SetContainedFontColor default clHighlightText;
+    property DarkColor: TColor read FDarkColor write SetDarkColor default clBlack;
+    property DarkFontColor: TColor read FDarkFontColor write SetDarkFontColor default clWhite;
+    property LightColor: TColor read FLightColor write SetLightColor default clBtnFace;
+    property LightFontColor: TColor read FLightFontColor write SetLightFontColor default clBtnText;
+    property HoverColor: TColor read FHoverColor write SetHoverColor default clNone; // clNone para usar lógica padrão
+    property PressedColor: TColor read FPressedColor write SetPressedColor default clNone; // clNone para usar lógica padrão
+
+    // Propriedades padrão
     property Align;
     property Anchors;
     property Constraints;
@@ -143,6 +132,8 @@ type
     property ShowHint;
     property Visible;
     property OnClick: TNotifyEvent read FOnClick write FOnClick;
+
+    // Outras propriedades padrão que você pode querer republicar
     property Action;
     property HelpContext;
     property Hint;
@@ -155,17 +146,7 @@ procedure Register;
 
 implementation
 
-function ColorToARGB(AColor: TColor; AAlpha: Byte = 255): ARGB;
-var
-  LColorRGB: TColor;
-begin
-  LColorRGB := ColorToRGB(AColor); // Converte cores do sistema (ex: clBtnFace) para um valor RGB explícito
-  Result := (DWORD(AAlpha) shl 24) or    // Componente Alpha
-            (GetRValue(LColorRGB) shl 16) or // Componente Red
-            (GetGValue(LColorRGB) shl 8) or  // Componente Green
-            GetBValue(LColorRGB);            // Componente Blue
-end;
-
+// --- Funções Auxiliares de Cor (coloque-as aqui ou em uma unit de utilidades) ---
 function DarkenColor(AColor: TColor; APercent: Byte): TColor;
 var
   R, G, B: Byte;
@@ -192,7 +173,7 @@ begin
   Result := TColor(RGB(R, G, B));
 end;
 
-{ TFLUIBorderSettings }
+// --- Implementação de TFLUIBorderSettings ---
 constructor TFLUIBorderSettings.Create;
 begin
   inherited Create;
@@ -269,39 +250,41 @@ begin
   end;
 end;
 
-{ TFLUIButton }
+// --- Implementação de TFLUIButton ---
 constructor TFLUIButton.Create(AOwner: TComponent);
 begin
   inherited Create(AOwner);
   ControlStyle := ControlStyle + [csOpaque, csClickEvents, csCaptureMouse,
-    csReplicatable, csDoubleClicks];
-  // csTrackMouse adicionado diretamente
-
+                                  csReplicatable,  csDoubleClicks];
   Width := 100;
   Height := 30;
-  TabStop := True;
+  TabStop := True; // Para poder receber foco
+
   FCaption := Name;
+
   FBorderSettings := TFLUIBorderSettings.Create;
   FBorderSettings.OnChange := BorderSettingsChanged;
+
   FButtonType := TFLUIButtonType.fbtContained;
-  FContainedFontColor := clWindowText;
+  FContainedFontColor := clWindowText; // Cor de fonte padrão para Contained
   FDarkColor := clBlack;
   FDarkFontColor := clWhite;
-  FLightColor := clInfoBk;
+  FLightColor := clInfoBk; // Um cinza bem claro, quase branco
   FLightFontColor := clWindowText;
-  FHoverColor := clNone;
-  FPressedColor := clNone;
+  FHoverColor := clNone;   // Usará lógica de clarear/escurecer
+  FPressedColor := clNone; // Usará lógica de clarear/escurecer
+
   FIsHovering := False;
   FIsPressed := False;
 end;
 
 destructor TFLUIButton.Destroy;
 begin
-  if Assigned(FBorderSettings) then
+  if Assigned(FBorderSettings) then // Verifica se foi atribuído
   begin
     FBorderSettings.OnChange := nil;
     FBorderSettings.Free;
-    FBorderSettings := nil;
+    FBorderSettings := nil; // Boa prática
   end;
   inherited Destroy;
 end;
@@ -311,20 +294,18 @@ begin
   Invalidate;
 end;
 
+// Getters e Setters para propriedades delegadas
 function TFLUIButton.GetCornerRadius: Integer;
 begin
   Result := FBorderSettings.Radius;
 end;
 
 procedure TFLUIButton.SetCornerRadius(const Value: Integer);
-var
-  MaxRadiusValue: Integer;
+var MaxRadius: Integer;
 begin
-  if (Width > 0) and (Height > 0) then
-    MaxRadiusValue := Min(Width, Height) div 2
-  else
-    MaxRadiusValue := Value;
-  FBorderSettings.Radius := System.Math.EnsureRange(Value, 0, MaxRadiusValue);
+  if (Width > 0) and (Height > 0) then MaxRadius := Min(Width, Height) div 2
+  else MaxRadius := Value;
+  FBorderSettings.Radius := EnsureRange(Value, 0, MaxRadius);
 end;
 
 function TFLUIButton.GetButtonFillColor: TColor;
@@ -367,6 +348,7 @@ begin
   FBorderSettings.BorderStyle := Value;
 end;
 
+// Setters para propriedades diretas do TFLUIButton
 procedure TFLUIButton.SetCaption(const Value: string);
 begin
   if FCaption <> Value then
@@ -435,8 +417,7 @@ begin
   if FHoverColor <> Value then
   begin
     FHoverColor := Value;
-    if FIsHovering then
-      Invalidate;
+    if FIsHovering then Invalidate;
   end;
 end;
 
@@ -445,15 +426,15 @@ begin
   if FPressedColor <> Value then
   begin
     FPressedColor := Value;
-    if FIsPressed then
-      Invalidate;
+    if FIsPressed then Invalidate;
   end;
 end;
 
+// Manipuladores de eventos do mouse e mensagens
 procedure TFLUIButton.CMMouseEnter(var Message: TMessage);
 begin
   inherited;
-  if not(csDesigning in ComponentState) then
+  if not (csDesigning in ComponentState) then
   begin
     FIsHovering := True;
     Invalidate;
@@ -463,11 +444,13 @@ end;
 procedure TFLUIButton.CMMouseLeave(var Message: TMessage);
 begin
   inherited;
-  if not(csDesigning in ComponentState) then
+  if not (csDesigning in ComponentState) then
   begin
     FIsHovering := False;
-    if FIsPressed then
+    if FIsPressed then // Se sair com o mouse pressionado, resetar estado Pressionado visualmente
+    begin
       FIsPressed := False;
+    end;
     Invalidate;
   end;
 end;
@@ -475,319 +458,242 @@ end;
 procedure TFLUIButton.CMEnabledChanged(var Message: TMessage);
 begin
   inherited;
-  Invalidate;
+  Invalidate; // Redesenhar quando o estado Enabled mudar
 end;
 
-procedure TFLUIButton.MouseDown(Button: TMouseButton; Shift: TShiftState;
-  X, Y: Integer);
+
+procedure TFLUIButton.MouseDown(Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
 begin
   inherited;
-  if (Button = mbLeft) and Enabled and not(csDesigning in ComponentState) then
+  if (Button = mbLeft) and Enabled and not (csDesigning in ComponentState) then
   begin
     FIsPressed := True;
     Invalidate;
   end;
 end;
 
-procedure TFLUIButton.MouseUp(Button: TMouseButton; Shift: TShiftState;
-  X, Y: Integer);
+procedure TFLUIButton.MouseUp(Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
 var
   WasPressed: Boolean;
 begin
-  WasPressed := FIsPressed;
+  WasPressed := FIsPressed; // Guarda o estado antes de resetar
   if FIsPressed then
   begin
     FIsPressed := False;
-    Invalidate;
+    Invalidate; // Precisa redesenhar para o estado normal/hover
   end;
-  inherited;
-  if WasPressed and Enabled and (Button = mbLeft) and
-    PtInRect(ClientRect, Point(X, Y)) then
+  inherited; // Chama o inherited MouseUp
+
+  if WasPressed and Enabled and (Button = mbLeft) and PtInRect(ClientRect, Point(X,Y)) then
   begin
-    if not(csDesigning in ComponentState) then
-      Click;
+    if not (csDesigning in ComponentState) then
+    begin
+       Click; // Dispara o evento OnClick
+    end;
   end;
 end;
 
-function TFLUIButton.CreateGPRoundedRectPath(ARect: TGPRectF; ARadius: Single)
-  : TGPGraphicsPath;
-var
-  LPath: TGPGraphicsPath;
-  LRadiusEffective: Single;
-  // Renomeado para evitar confusão com ARadius parâmetro
-  Diameter: Single;
-begin
-  LPath := TGPGraphicsPath.Create;
-  LRadiusEffective := Max(0, ARadius);
-
-  Diameter := LRadiusEffective * 2;
-  if Diameter > ARect.Width then
-    Diameter := ARect.Width;
-  if Diameter > ARect.Height then
-    Diameter := ARect.Height;
-  LRadiusEffective := Diameter / 2;
-
-  if (LRadiusEffective = 0) or (ARect.Width <= 0) or (ARect.Height <= 0) then
-  // Se raio zero ou retângulo inválido
-  begin
-    if (ARect.Width > 0) and (ARect.Height > 0) then
-      LPath.AddRectangle(ARect);
-  end
-  else
-  begin
-    LPath.AddArc(ARect.X, ARect.Y, Diameter, Diameter, 180, 90);
-    LPath.AddLine(ARect.X + LRadiusEffective, ARect.Y, ARect.X + ARect.Width -
-      LRadiusEffective, ARect.Y);
-    LPath.AddArc(ARect.X + ARect.Width - Diameter, ARect.Y, Diameter,
-      Diameter, 270, 90);
-    LPath.AddLine(ARect.X + ARect.Width, ARect.Y + LRadiusEffective,
-      ARect.X + ARect.Width, ARect.Y + ARect.Height - LRadiusEffective);
-    LPath.AddArc(ARect.X + ARect.Width - Diameter, ARect.Y + ARect.Height -
-      Diameter, Diameter, Diameter, 0, 90);
-    LPath.AddLine(ARect.X + ARect.Width - LRadiusEffective,
-      ARect.Y + ARect.Height, ARect.X + LRadiusEffective,
-      ARect.Y + ARect.Height);
-    LPath.AddArc(ARect.X, ARect.Y + ARect.Height - Diameter, Diameter,
-      Diameter, 90, 90);
-    LPath.AddLine(ARect.X, ARect.Y + ARect.Height - LRadiusEffective, ARect.X,
-      ARect.Y + LRadiusEffective);
-    LPath.CloseFigure();
-  end;
-  Result := LPath;
-end;
-
+// Método Paint principal
 procedure TFLUIButton.Paint;
 var
-  LRectVCL: TRect; // VCL TRect
-  LGPGraphics: TGPGraphics;
-  LGPRectClient: TGPRectF; // GDI+ RectF para o ClientRect completo
-  LGPPath: TGPGraphicsPath;
-  LGPBrush: TGPBrush;
-  LGPPen: TGPPen;
+  LRect: TRect;
   LCurrentFillColor, LCurrentBorderColor, LCurrentTextColor: TColor;
   LCurrentBorderThickness: Integer;
   LCurrentBorderStyle: TPenStyle;
-  LCurrentRadiusEffective: Single; // Raio efetivo para GDI+
+  LCurrentRadius: Integer;
   TextFlags: Cardinal;
-  PathDrawRect: TGPRectF;
-  // Retângulo para o qual o path é construído (insetado)
-  PathInset: Single;
+  OriginalPen: TPen;
+  OriginalBrush: TBrush;
 begin
-  LRectVCL := ClientRect;
-  LGPGraphics := TGPGraphics.Create(Canvas.Handle);
+  OriginalPen := TPen.Create;
+  OriginalBrush := TBrush.Create;
   try
-    LGPGraphics.SetSmoothingMode(SmoothingModeAntiAlias);
-    LGPGraphics.SetPixelOffsetMode(PixelOffsetModeHalf);
+    OriginalPen.Assign(Canvas.Pen);
+    OriginalBrush.Assign(Canvas.Brush);
 
-    Canvas.Font.Assign(Self.Font); // Para DrawText
+    Canvas.Font.Assign(Self.Font);
+    LRect := ClientRect;
 
-    LCurrentRadiusEffective := FBorderSettings.Radius;
+    // 1. Definir configurações base a partir de FBorderSettings
+    LCurrentRadius := FBorderSettings.Radius;
     LCurrentFillColor := FBorderSettings.BackgroundColor;
     LCurrentBorderColor := FBorderSettings.BorderColor;
     LCurrentBorderThickness := FBorderSettings.BorderThickness;
     LCurrentBorderStyle := FBorderSettings.BorderStyle;
-    LCurrentTextColor := Self.Font.Color;
+    LCurrentTextColor := Self.Font.Color; // Cor de texto base
 
+    // 2. Ajustar cores e estilos com base no estado (Enabled) e ButtonType
     if not Enabled then
     begin
       LCurrentFillColor := clBtnShadow;
       LCurrentTextColor := clGrayText;
       LCurrentBorderColor := clDkGray;
+      // Opcional: LCurrentBorderThickness := 0 ou 1;
     end
-    else
+    else // Enabled
     begin
       case FButtonType of
         fbtContained:
-          LCurrentTextColor := FContainedFontColor;
+          begin
+            LCurrentTextColor := FContainedFontColor;
+          end;
         fbtOutline:
           begin
             LCurrentFillColor := clNone;
             LCurrentTextColor := FBorderSettings.BorderColor;
             LCurrentBorderColor := FBorderSettings.BorderColor;
             LCurrentBorderThickness := Max(1, FBorderSettings.BorderThickness);
+            LCurrentBorderStyle := FBorderSettings.BorderStyle;
           end;
         fbtDark:
           begin
             LCurrentFillColor := FDarkColor;
             LCurrentTextColor := FDarkFontColor;
             LCurrentBorderColor := FDarkColor;
-            if LCurrentBorderThickness = 0 then
-              LCurrentBorderThickness := 1;
+            if LCurrentBorderThickness = 0 then LCurrentBorderThickness := 1;
           end;
         fbtLight:
           begin
             LCurrentFillColor := FLightColor;
             LCurrentTextColor := FLightFontColor;
             LCurrentBorderColor := FLightColor;
-            if LCurrentBorderThickness = 0 then
-              LCurrentBorderThickness := 1;
+            if LCurrentBorderThickness = 0 then LCurrentBorderThickness := 1;
           end;
-      end;
+      end; // End of case FButtonType
 
-      var
-        TempFillColor, TempBorderColor: TColor;
-      TempFillColor := LCurrentFillColor;
+      // 3. Aplicar modificações de Hover e Pressed
+      var TempFillColor: TColor;
+      var TempBorderColor: TColor; // These are local to this block if declared here.
+                                  // Better to declare all Paint local vars at the top.
+                                  // Assuming LCurrentFillColor, LCurrentBorderColor are the ones being modified.
+
+      TempFillColor := LCurrentFillColor;   // Initialize Temp vars from current state
       TempBorderColor := LCurrentBorderColor;
 
-      if FIsPressed and not(csDesigning in ComponentState) then
+      if FIsPressed and not (csDesigning in ComponentState) then
       begin
         if FPressedColor <> clNone then
           TempFillColor := FPressedColor
         else if LCurrentFillColor <> clNone then
           TempFillColor := DarkenColor(LCurrentFillColor, 20);
+
         if FButtonType = fbtOutline then
           TempBorderColor := DarkenColor(LCurrentBorderColor, 20);
       end
-      else if FIsHovering and not(csDesigning in ComponentState) then
+      else if FIsHovering and not (csDesigning in ComponentState) then
       begin
         if FHoverColor <> clNone then
           TempFillColor := FHoverColor
         else if LCurrentFillColor <> clNone then
           TempFillColor := LightenColor(LCurrentFillColor, 15);
+
         if FButtonType = fbtOutline then
           TempBorderColor := LightenColor(LCurrentBorderColor, 15);
       end;
-      LCurrentFillColor := TempFillColor;
-      LCurrentBorderColor := TempBorderColor;
 
-      if (FButtonType = fbtOutline) and (FIsHovering or FIsPressed) and
-        not(csDesigning in ComponentState) then
-      begin
-        LCurrentTextColor := LCurrentBorderColor;
-      end;
+      LCurrentFillColor := TempFillColor;     // Apply temp changes back
+      LCurrentBorderColor := TempBorderColor; // Apply temp changes back
+
+      // Se o tipo for Outline, a cor do texto acompanha a cor da borda no hover/press
+      //if (FButtonType = fbtOutline and (FIsHovering or FIsPressed)) and not ((csDesigning in ComponentState)) then
+      //begin
+      //    LCurrentTextColor := LCurrentBorderColor; // LCurrentBorderColor here should be the one just modified
+      //end;
+
+    end; // Fim do if Enabled
+
+    // 4. Desenhar
+    // Preenchimento
+    if LCurrentFillColor <> clNone then
+    begin
+      Canvas.Brush.Color := LCurrentFillColor;
+      Canvas.Brush.Style := bsSolid;
+    end
+    else
+    begin
+      Canvas.Brush.Style := bsClear;
     end;
 
-    LGPRectClient.X := Single(LRectVCL.Left);
-    LGPRectClient.Y := Single(LRectVCL.Top);
-    LGPRectClient.Width := Single(LRectVCL.Right - LRectVCL.Left);
-    LGPRectClient.Height := Single(LRectVCL.Bottom - LRectVCL.Top);
-
+    // Borda
     if LCurrentBorderThickness > 0 then
-      PathInset := LCurrentBorderThickness / 2.0
+    begin
+      Canvas.Pen.Color := LCurrentBorderColor;
+      Canvas.Pen.Width := LCurrentBorderThickness;
+      Canvas.Pen.Style := LCurrentBorderStyle;
+    end
     else
-      PathInset := 0.0;
-
-    PathDrawRect := MakeRect(LGPRectClient.X + PathInset,
-      LGPRectClient.Y + PathInset, LGPRectClient.Width - 2 * PathInset,
-      LGPRectClient.Height - 2 * PathInset);
-    if PathDrawRect.Width < 0 then
-      PathDrawRect.Width := 0;
-    if PathDrawRect.Height < 0 then
-      PathDrawRect.Height := 0;
-
-    // O raio para o caminho insetado também deve ser reduzido pelo inset, se o raio for maior que o inset
-    var
-      RadiusForPath: Single;
-    if LCurrentRadiusEffective > PathInset then
-      RadiusForPath := LCurrentRadiusEffective - PathInset
-    else
-      RadiusForPath := 0;
-    // Se o raio for menor ou igual ao inset, o canto efetivo será agudo no path insetado
-
-    LGPPath := CreateGPRoundedRectPath(PathDrawRect, RadiusForPath);
-    try
-      if LCurrentFillColor <> clNone then
+    begin
+      // Se não houver espessura de borda, mas o tipo é outline,
+      // e FillColor é clNone, desenhamos uma borda fina da cor da borda definida
+      // para que o botão não desapareça completamente.
+      if (FButtonType = fbtOutline) and (LCurrentFillColor = clNone) then
       begin
-        LGPBrush := TGPSolidBrush.Create(ColorToARGB(LCurrentFillColor,
-          IfThen(FButtonType = fbtOutline, 0, 255)));
-        try
-          LGPGraphics.FillPath(LGPBrush, LGPPath);
-        finally
-          LGPBrush.Free;
-        end;
-      end;
-
-      if LCurrentBorderThickness > 0 then
-      begin
-        LGPPen := TGPPen.Create(ColorToARGB(LCurrentBorderColor, 255),
-          LCurrentBorderThickness);
-        try
-          case LCurrentBorderStyle of
-            psDash:
-              LGPPen.SetDashStyle(DashStyleDash);
-            psDot:
-              LGPPen.SetDashStyle(DashStyleDot);
-            psDashDot:
-              LGPPen.SetDashStyle(DashStyleDashDot);
-            psDashDotDot:
-              LGPPen.SetDashStyle(DashStyleDashDotDot);
-          else
-            LGPPen.SetDashStyle(DashStyleSolid);
-          end;
-          LGPGraphics.DrawPath(LGPPen, LGPPath);
-        finally
-          LGPPen.Free;
-        end;
+        Canvas.Pen.Color := LCurrentBorderColor;
+        Canvas.Pen.Width := 1; // Mínimo para ser visível
+        Canvas.Pen.Style := psSolid; // Garante que seja sólida
       end
-      else if (FButtonType = fbtOutline) and (LCurrentFillColor = clNone) then
+      else
       begin
-        LGPPen := TGPPen.Create(ColorToARGB(LCurrentBorderColor, 255), 1.0);
-        try
-          LGPPen.SetDashStyle(DashStyleSolid);
-          LGPGraphics.DrawPath(LGPPen, LGPPath);
-        finally
-          LGPPen.Free;
-        end;
+        Canvas.Pen.Style := psClear; // Sem borda visível
       end;
-    finally
-      LGPPath.Free;
     end;
 
-    Canvas.Brush.Style := bsClear;
+    // Desenhar a forma
+    if LCurrentRadius > 0 then
+    begin
+      Canvas.RoundRect(LRect.Left, LRect.Top, LRect.Right, LRect.Bottom, LCurrentRadius, LCurrentRadius);
+    end
+    else
+    begin
+      Canvas.Rectangle(LRect.Left, LRect.Top, LRect.Right, LRect.Bottom);
+    end;
+
+    // Texto
+    Canvas.Brush.Style := bsClear; // Importante para o texto
     Canvas.Font.Color := LCurrentTextColor;
     TextFlags := DT_CENTER or DT_VCENTER or DT_SINGLELINE or DT_NOCLIP;
-    DrawText(Canvas.Handle, PChar(FCaption), Length(FCaption), LRectVCL,
-      TextFlags);
+    DrawText(Canvas.Handle, PChar(FCaption), Length(FCaption), LRect, TextFlags);
 
-    if Focused and Enabled and not(csDesigning in ComponentState) then
+    // Foco
+    if Focused and Enabled and not (csDesigning in ComponentState) then
     begin
-      var
-      FocusDrawRectVCL := LRectVCL;
-      var
-        FocusBorderInset: Integer;
-      FocusBorderInset := LCurrentBorderThickness + 1;
-      if (LCurrentBorderThickness = 0) and (FButtonType = fbtOutline) then
-        FocusBorderInset := 1 + 1;
-      InflateRect(FocusDrawRectVCL, -FocusBorderInset, -FocusBorderInset);
-      if (FocusDrawRectVCL.Right > FocusDrawRectVCL.Left) and
-        (FocusDrawRectVCL.Bottom > FocusDrawRectVCL.Top) then
+      // Ajusta o retângulo de foco para dentro da borda principal
+      var FocusDrawRect := LRect;
+      if LCurrentBorderThickness > 0 then // Só ajusta se houver borda
+          InflateRect(FocusDrawRect, - (LCurrentBorderThickness + 1), - (LCurrentBorderThickness + 1))
+      else // Se não houver borda, infla um pouco para não sobrepor o texto
+          InflateRect(FocusDrawRect, -2, -2);
+
+      if (FocusDrawRect.Right > FocusDrawRect.Left) and (FocusDrawRect.Bottom > FocusDrawRect.Top) then
       begin
-        Canvas.Pen.Color := clGrayText;
+        Canvas.Pen.Color := clGrayText; // Cor para o foco
         Canvas.Pen.Style := psDot;
         Canvas.Pen.Width := 1;
         Canvas.Brush.Style := bsClear;
-        if LCurrentRadiusEffective > 0 then
+        if LCurrentRadius > 0 then // Desenha foco arredondado se o botão for arredondado
         begin
-          var
-            FocusRadius: Integer;
-          FocusRadius := Max(0, Round(LCurrentRadiusEffective) -
-            FocusBorderInset);
-          Canvas.RoundRect(FocusDrawRectVCL.Left, FocusDrawRectVCL.Top,
-            FocusDrawRectVCL.Right, FocusDrawRectVCL.Bottom, FocusRadius,
-            FocusRadius);
+          // Tenta manter o raio do foco um pouco menor
+          var FocusRadius: Integer;
+          FocusRadius := Max(0, LCurrentRadius - (LCurrentBorderThickness + 1));
+          Canvas.RoundRect(FocusDrawRect.Left, FocusDrawRect.Top, FocusDrawRect.Right, FocusDrawRect.Bottom, FocusRadius, FocusRadius);
         end
         else
-          Canvas.FrameRect(FocusDrawRectVCL);
+          Canvas.FrameRect(FocusDrawRect); // Canvas.DrawFocusRect(FocusDrawRect) é outra opção
       end;
     end;
+
   finally
-    LGPGraphics.Free;
+    Canvas.Pen.Assign(OriginalPen);
+    Canvas.Brush.Assign(OriginalBrush);
+    OriginalPen.Free;
+    OriginalBrush.Free;
   end;
 end;
 
+// Procedimento de Registro
 procedure Register;
 begin
   RegisterComponents('FLUI', [TFLUIButton]);
 end;
 
-initialization
-
-// Considerar inicializar GDI+ na aplicação principal (projeto .dpr)
-// var GdiplusStartupInput: TGdiplusStartupInput;
-// var GdiplusToken: ULONG_PTR;
-// GdiplusStartupInput.GdiplusVersion := 1;
-// GdiplusStartup(GdiplusToken, @GdiplusStartupInput, nil);
-finalization
-
-// if GdiplusToken <> 0 then GdiplusShutdown(GdiplusToken);
 end.
