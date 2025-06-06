@@ -34,7 +34,6 @@ requires
 
 contains
   FLUI.Button in 'Source\FLUI.Button.pas',
-  FLUI.Classes in 'Source\FLUI.Classes.pas',
-  FLUI.ContainerGridLayout in 'Source\FLUI.ContainerGridLayout.pas';
+  FLUI.Classes in 'Source\FLUI.Classes.pas';
 
 end.
