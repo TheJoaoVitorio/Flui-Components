@@ -10,6 +10,28 @@ type
   TFLUIButtonType = (fbtContained, fbtOutline, fbtDark, fbtLight, fbtGradient);
   TFLUIGradientColor = class;
   TFLUIButtonColorSettings = class;
+  TFLUIBorderSettings = class;
+
+  TFLUIGradientColor = class(TPersistent)
+  private
+    FStartColor: TColor;
+    FEndColor: TColor;
+    FEnabled: Boolean;
+    FOnChange: TNotifyEvent;
+    procedure SetStartColor(const Value: TColor);
+    procedure SetEndColor(const Value: TColor);
+    procedure SetEnabled(const Value: Boolean);
+  protected
+    procedure Changed; virtual;
+  public
+    constructor Create;
+    procedure Assign(Source: TPersistent); override;
+  published
+    property Enabled: Boolean read FEnabled write SetEnabled default True;
+    property StartColor: TColor read FStartColor write SetStartColor default clWhite;
+    property EndColor: TColor read FEndColor write SetEndColor default clSilver;
+    property OnChange: TNotifyEvent read FOnChange write FOnChange;
+  end;
 
   TFLUIBorderSettings = class(TPersistent)
   private
@@ -18,47 +40,37 @@ type
     FBorderColor: TColor;
     FBorderThickness: Integer;
     FBorderStyle: TPenStyle;
+    FUseGradientBorder: Boolean;
+    FGradient: TFLUIGradientColor;
 
     procedure SetRadius(const Value: Integer);
     procedure SetBorderColor(const Value: TColor);
     procedure SetBorderThickness(const Value: Integer);
     procedure SetBorderStyle(const Value: TPenStyle);
+    procedure SetUseGradientBorder(const Value: Boolean);
+    procedure SetGradient(const Value: TFLUIGradientColor);
   protected
     procedure Changed; virtual;
+    procedure GradientChanged(Sender: TObject);
   public
     constructor Create;
+    destructor Destroy; override;
     procedure Assign(Source: TPersistent); override;
   published
     property Radius: Integer read FRadius write SetRadius default 8;
     property BorderColor: TColor read FBorderColor write SetBorderColor default clWindowText;
     property BorderThickness: Integer read FBorderThickness write SetBorderThickness default 1;
     property BorderStyle: TPenStyle read FBorderStyle write SetBorderStyle default psSolid;
-    property OnChange: TNotifyEvent read FOnChange write FOnChange;
-  end;
-
-  TFLUIGradientColor = class(TPersistent)
-  private
-    FStartColor: TColor;
-    FEndColor: TColor;
-    FOnChange: TNotifyEvent;
-    procedure SetStartColor(const Value: TColor);
-    procedure SetEndColor(const Value: TColor);
-  protected
-    procedure Changed; virtual;
-  public
-    constructor Create;
-    procedure Assign(Source: TPersistent); override;
-  published
-    property StartColor: TColor read FStartColor write SetStartColor default clWhite;
-    property EndColor: TColor read FEndColor write SetEndColor default clSilver;
+    property UseGradientBorder: Boolean read FUseGradientBorder write SetUseGradientBorder default False; // Novo
+    property Gradient: TFLUIGradientColor read FGradient write SetGradient;
     property OnChange: TNotifyEvent read FOnChange write FOnChange;
   end;
 
   TFLUIButtonColorSettings = class(TPersistent)
   private
     FOnChange: TNotifyEvent;
-    FFillColor: TColor;
-    FGradient: TFLUIGradientColor;
+    FFillColor: TColor; // Usado se Gradient.Enabled = False ou ButtonType não é fbtGradient
+    FGradient: TFLUIGradientColor; // Gradiente para o preenchimento
     FButtonType: TFLUIButtonType;
 
     procedure SetFillColor(const Value: TColor);
@@ -66,7 +78,7 @@ type
     procedure SetButtonType(const Value: TFLUIButtonType);
   protected
     procedure Changed; virtual;
-    procedure GradientChanged(Sender: TObject);
+    procedure FillGradientChanged(Sender: TObject); // Renomeado para clareza
   public
     constructor Create;
     destructor Destroy; override;
@@ -85,6 +97,7 @@ implementation
 constructor TFLUIGradientColor.Create;
 begin
   inherited Create;
+  FEnabled := True; // Gradientes são ativos por padrão
   FStartColor := clWhite;
   FEndColor := clSilver;
 end;
@@ -93,6 +106,7 @@ procedure TFLUIGradientColor.Assign(Source: TPersistent);
 begin
   if Source is TFLUIGradientColor then
   begin
+    Self.FEnabled := TFLUIGradientColor(Source).FEnabled;
     Self.FStartColor := TFLUIGradientColor(Source).FStartColor;
     Self.FEndColor := TFLUIGradientColor(Source).FEndColor;
     Self.Changed;
@@ -105,6 +119,15 @@ procedure TFLUIGradientColor.Changed;
 begin
   if Assigned(FOnChange) then
     FOnChange(Self);
+end;
+
+procedure TFLUIGradientColor.SetEnabled(const Value: Boolean);
+begin
+  if FEnabled <> Value then
+  begin
+    FEnabled := Value;
+    Changed;
+  end;
 end;
 
 procedure TFLUIGradientColor.SetStartColor(const Value: TColor);
@@ -134,6 +157,15 @@ begin
   FBorderColor := clWindowText;
   FBorderThickness := 1;
   FBorderStyle := psSolid;
+  FUseGradientBorder := False;
+  FGradient := TFLUIGradientColor.Create;
+  FGradient.OnChange := Self.GradientChanged; // Conecta o evento
+end;
+
+destructor TFLUIBorderSettings.Destroy;
+begin
+  FGradient.Free;
+  inherited Destroy;
 end;
 
 procedure TFLUIBorderSettings.Assign(Source: TPersistent);
@@ -144,6 +176,8 @@ begin
     Self.FBorderColor := TFLUIBorderSettings(Source).FBorderColor;
     Self.FBorderThickness := TFLUIBorderSettings(Source).FBorderThickness;
     Self.FBorderStyle := TFLUIBorderSettings(Source).FBorderStyle;
+    Self.FUseGradientBorder := TFLUIBorderSettings(Source).FUseGradientBorder;
+    Self.FGradient.Assign(TFLUIBorderSettings(Source).FGradient);
     Changed;
   end
   else
@@ -154,6 +188,11 @@ procedure TFLUIBorderSettings.Changed;
 begin
   if Assigned(FOnChange) then
     FOnChange(Self);
+end;
+
+procedure TFLUIBorderSettings.GradientChanged(Sender: TObject);
+begin
+  Changed; // Repassa a notificação se o gradiente da borda mudar
 end;
 
 procedure TFLUIBorderSettings.SetRadius(const Value: Integer);
@@ -192,6 +231,20 @@ begin
   end;
 end;
 
+procedure TFLUIBorderSettings.SetUseGradientBorder(const Value: Boolean);
+begin
+  if FUseGradientBorder <> Value then
+  begin
+    FUseGradientBorder := Value;
+    Changed;
+  end;
+end;
+
+procedure TFLUIBorderSettings.SetGradient(const Value: TFLUIGradientColor);
+begin
+  FGradient.Assign(Value);
+end;
+
 { TFLUIButtonColorSettings }
 
 constructor TFLUIButtonColorSettings.Create;
@@ -199,7 +252,7 @@ begin
   inherited Create;
   FFillColor := clBtnFace;
   FGradient := TFLUIGradientColor.Create;
-  FGradient.OnChange := Self.GradientChanged;
+  FGradient.OnChange := Self.FillGradientChanged; // Nome do handler atualizado
   FButtonType := TFLUIButtonType.fbtContained;
 end;
 
@@ -228,7 +281,7 @@ begin
     FOnChange(Self);
 end;
 
-procedure TFLUIButtonColorSettings.GradientChanged(Sender: TObject);
+procedure TFLUIButtonColorSettings.FillGradientChanged(Sender: TObject); // Renomeado
 begin
   Changed;
 end;
@@ -244,7 +297,7 @@ end;
 
 procedure TFLUIButtonColorSettings.SetGradient(const Value: TFLUIGradientColor);
 begin
-  FGradient.Assign(Value);
+  FGradient.Assign(Value); // Este é o gradiente de preenchimento
 end;
 
 procedure TFLUIButtonColorSettings.SetButtonType(const Value: TFLUIButtonType);

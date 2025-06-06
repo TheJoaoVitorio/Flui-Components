@@ -10,6 +10,55 @@ uses
   Winapi.GDIPOBJ, Winapi.GDIPAPI, Winapi.GDIPUTIL;
 
 type
+<<<<<<< HEAD
+
+  TFLUIBorderSettings = class(TPersistent)
+  private
+    FOnChange: TNotifyEvent;
+    FRadius: Integer;
+    FBackgroundColor: TColor;
+    FBorderColor: TColor; // Cor da borda
+    FBorderThickness: Integer;
+    FBorderStyle: TPenStyle;
+    FGradientStartColor: TColor; // New
+    FGradientEndColor: TColor; // New
+
+    // Setters
+    procedure SetRadius(const Value: Integer);
+    procedure SetBackgroundColor(const Value: TColor);
+    procedure SetBorderColor(const Value: TColor);
+    procedure SetBorderThickness(const Value: Integer);
+    procedure SetBorderStyle(const Value: TPenStyle);
+    procedure SetGradientStartColor(const Value: TColor); // New
+    procedure SetGradientEndColor(const Value: TColor); // New
+  protected
+    procedure Changed; virtual;
+  public
+    constructor Create;
+    procedure Assign(Source: TPersistent); override;
+
+    property Radius: Integer read FRadius write SetRadius default 8;
+    property BackgroundColor: TColor read FBackgroundColor
+      write SetBackgroundColor default clBtnFace;
+    property BorderColor: TColor read FBorderColor write SetBorderColor
+      default clWindowText;
+    property BorderThickness: Integer read FBorderThickness
+      write SetBorderThickness default 1;
+    property BorderStyle: TPenStyle read FBorderStyle write SetBorderStyle
+      default psSolid;
+    property GradientStartColor: TColor read FGradientStartColor
+      write SetGradientStartColor default clWhite; // New
+    property GradientEndColor: TColor read FGradientEndColor
+      write SetGradientEndColor default clSilver; // New
+    property OnChange: TNotifyEvent read FOnChange write FOnChange;
+  end;
+
+  TFLUIButtonType = (fbtContained, fbtOutline, fbtDark, fbtLight, fbtGradient);
+  // Added fbtGradient
+
+  
+=======
+>>>>>>> 34a1541 (Feat: BorderSettings, GradientColors , FLUI.Classes created)
   TFLUIButton = class(TCustomControl)
   private
     FCaption: string;
