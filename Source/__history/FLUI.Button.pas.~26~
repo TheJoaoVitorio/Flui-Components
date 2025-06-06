@@ -4,61 +4,13 @@ interface
 
 uses
   FLUI.Classes,
+
   System.SysUtils, System.Classes, System.UITypes, System.Math,
   Winapi.Windows, Winapi.Messages,
   Vcl.Controls, Vcl.Graphics, Vcl.StdCtrls, Vcl.Themes,
   Winapi.GDIPOBJ, Winapi.GDIPAPI, Winapi.GDIPUTIL;
 
 type
-<<<<<<< HEAD
-
-  TFLUIBorderSettings = class(TPersistent)
-  private
-    FOnChange: TNotifyEvent;
-    FRadius: Integer;
-    FBackgroundColor: TColor;
-    FBorderColor: TColor; // Cor da borda
-    FBorderThickness: Integer;
-    FBorderStyle: TPenStyle;
-    FGradientStartColor: TColor; // New
-    FGradientEndColor: TColor; // New
-
-    // Setters
-    procedure SetRadius(const Value: Integer);
-    procedure SetBackgroundColor(const Value: TColor);
-    procedure SetBorderColor(const Value: TColor);
-    procedure SetBorderThickness(const Value: Integer);
-    procedure SetBorderStyle(const Value: TPenStyle);
-    procedure SetGradientStartColor(const Value: TColor); // New
-    procedure SetGradientEndColor(const Value: TColor); // New
-  protected
-    procedure Changed; virtual;
-  public
-    constructor Create;
-    procedure Assign(Source: TPersistent); override;
-
-    property Radius: Integer read FRadius write SetRadius default 8;
-    property BackgroundColor: TColor read FBackgroundColor
-      write SetBackgroundColor default clBtnFace;
-    property BorderColor: TColor read FBorderColor write SetBorderColor
-      default clWindowText;
-    property BorderThickness: Integer read FBorderThickness
-      write SetBorderThickness default 1;
-    property BorderStyle: TPenStyle read FBorderStyle write SetBorderStyle
-      default psSolid;
-    property GradientStartColor: TColor read FGradientStartColor
-      write SetGradientStartColor default clWhite; // New
-    property GradientEndColor: TColor read FGradientEndColor
-      write SetGradientEndColor default clSilver; // New
-    property OnChange: TNotifyEvent read FOnChange write FOnChange;
-  end;
-
-  TFLUIButtonType = (fbtContained, fbtOutline, fbtDark, fbtLight, fbtGradient);
-  // Added fbtGradient
-
-  
-=======
->>>>>>> 34a1541 (Feat: BorderSettings, GradientColors , FLUI.Classes created)
   TFLUIButton = class(TCustomControl)
   private
     FCaption: string;
@@ -95,7 +47,6 @@ type
     procedure CMEnabledChanged(var Message: TMessage); message CM_ENABLEDCHANGED;
     procedure SettingsChanged(Sender: TObject);
     function CreateGPRoundedRectPath(ARect: TGPRectF; ARadius: Single): TGPGraphicsPath;
-    function CreateGPRoundedRectBorderPath(AOuterRect: TGPRectF; AOuterRadius: Single; ABorderThickness: Single): TGPGraphicsPath;
 
   public
     constructor Create(AOwner: TComponent); override;
@@ -372,20 +323,16 @@ begin
   LRadiusEffective := Max(0, ARadius);
 
   Diameter := LRadiusEffective * 2;
-  if Diameter > ARect.Width then Diameter := ARect.Width;
-  if Diameter > ARect.Height then Diameter := ARect.Height;
-
-  if (ARect.Width <=0) or (ARect.Height <=0) then
-  begin
-    Result := LPath;
-    Exit;
-  end;
-
+  if Diameter > ARect.Width then
+    Diameter := ARect.Width;
+  if Diameter > ARect.Height then
+    Diameter := ARect.Height;
   LRadiusEffective := Diameter / 2;
 
-  if (LRadiusEffective = 0) then
+  if (LRadiusEffective = 0) or (ARect.Width <= 0) or (ARect.Height <= 0) then
   begin
-    LPath.AddRectangle(ARect);
+    if (ARect.Width > 0) and (ARect.Height > 0) then
+      LPath.AddRectangle(ARect);
   end
   else
   begin
@@ -402,60 +349,27 @@ begin
   Result := LPath;
 end;
 
-function TFLUIButton.CreateGPRoundedRectBorderPath(AOuterRect: TGPRectF; AOuterRadius: Single; ABorderThickness: Single): TGPGraphicsPath;
-var
-  OuterPath, InnerPath: TGPGraphicsPath;
-  InnerRect: TGPRectF;
-  InnerRadius: Single;
-begin
-  Result := TGPGraphicsPath.Create(FillModeAlternate);
-
-  if ABorderThickness <= 0 then Exit;
-
-  OuterPath := CreateGPRoundedRectPath(AOuterRect, AOuterRadius);
-  Result.AddPath(OuterPath, False);
-  OuterPath.Free;
-
-  InnerRect := AOuterRect;
-  // CORREÇÃO APLICADA AQUI:
-  InnerRect.X := InnerRect.X + ABorderThickness;
-  InnerRect.Y := InnerRect.Y + ABorderThickness;
-  InnerRect.Width := InnerRect.Width - (2 * ABorderThickness);
-  InnerRect.Height := InnerRect.Height - (2 * ABorderThickness);
-
-  InnerRadius := Max(0, AOuterRadius - ABorderThickness);
-
-  if (InnerRect.Width <= 0) or (InnerRect.Height <= 0) then Exit;
-
-  InnerPath := CreateGPRoundedRectPath(InnerRect, InnerRadius);
-  Result.AddPath(InnerPath, False);
-  InnerPath.Free;
-end;
-
-
 procedure TFLUIButton.Paint;
 var
   LRectVCL: TRect;
   LGPGraphics: TGPGraphics;
   LGPRectClient: TGPRectF;
-  LGPFillPath: TGPGraphicsPath;
-  LGPBorderPath: TGPGraphicsPath;
+  LGPPath: TGPGraphicsPath;
   LGPBrush: TGPBrush;
   LGPPen: TGPPen;
-  LCurrentFillColor, LCurrentBorderColorSolid, LCurrentTextColor: TColor;
-  LCurrentFillGradientStart, LCurrentFillGradientEnd: TColor;
-  LCurrentBorderGradientStart, LCurrentBorderGradientEnd: TColor;
+  LCurrentFillColor, LCurrentBorderColor, LCurrentTextColor: TColor;
+  LCurrentGradientStartColor, LCurrentGradientEndColor: TColor;
   LCurrentBorderThickness: Integer;
   LCurrentBorderStyle: TPenStyle;
   LCurrentRadiusEffective: Single;
   LCurrentButtonType: TFLUIButtonType;
-  LUseGradientFill, LUseGradientBorderEnabled: Boolean;
   TextFlags: Cardinal;
   PathDrawRect: TGPRectF;
   PathInset: Single;
 begin
   LRectVCL := ClientRect;
-  if (LRectVCL.Width <= 0) or (LRectVCL.Height <= 0) then Exit;
+  if (LRectVCL.Width <= 0) or (LRectVCL.Height <= 0) then
+    Exit;
 
   LGPGraphics := TGPGraphics.Create(Canvas.Handle);
   try
@@ -464,33 +378,22 @@ begin
     Canvas.Font.Assign(Self.Font);
 
     LCurrentRadiusEffective := FBorderSettings.Radius;
-    LCurrentBorderColorSolid := FBorderSettings.BorderColor;
+    LCurrentBorderColor := FBorderSettings.BorderColor;
     LCurrentBorderThickness := FBorderSettings.BorderThickness;
     LCurrentBorderStyle := FBorderSettings.BorderStyle;
-    LUseGradientBorderEnabled := FBorderSettings.UseGradientBorder and FBorderSettings.Gradient.Enabled;
-    if LUseGradientBorderEnabled then
-    begin
-      LCurrentBorderGradientStart := FBorderSettings.Gradient.StartColor;
-      LCurrentBorderGradientEnd := FBorderSettings.Gradient.EndColor;
-    end;
 
     LCurrentFillColor := FButtonColorSettings.FillColor;
-    LUseGradientFill := (FButtonColorSettings.ButtonType = fbtGradient) and FButtonColorSettings.Gradient.Enabled;
-    if LUseGradientFill then
-    begin
-      LCurrentFillGradientStart := FButtonColorSettings.Gradient.StartColor;
-      LCurrentFillGradientEnd := FButtonColorSettings.Gradient.EndColor;
-    end;
+    LCurrentGradientStartColor := FButtonColorSettings.Gradient.StartColor;
+    LCurrentGradientEndColor := FButtonColorSettings.Gradient.EndColor;
     LCurrentButtonType := FButtonColorSettings.ButtonType;
+
     LCurrentTextColor := Self.Font.Color;
 
     if not Enabled then
     begin
       LCurrentFillColor := clBtnShadow;
       LCurrentTextColor := clGrayText;
-      LCurrentBorderColorSolid := clDkGray;
-      LUseGradientFill := False;
-      LUseGradientBorderEnabled := False;
+      LCurrentBorderColor := clDkGray;
     end
     else
     begin
@@ -499,149 +402,113 @@ begin
         fbtOutline:
           begin
             LCurrentFillColor := clNone;
-            LUseGradientFill := False;
-            LCurrentTextColor := LCurrentBorderColorSolid;
-            if LUseGradientBorderEnabled then
-               LCurrentTextColor := FBorderSettings.Gradient.StartColor;
-            LCurrentBorderThickness := Max(1, LCurrentBorderThickness);
+            LCurrentTextColor := FBorderSettings.BorderColor;
+            LCurrentBorderColor := FBorderSettings.BorderColor;
+            LCurrentBorderThickness := Max(1, FBorderSettings.BorderThickness);
           end;
         fbtDark:
           begin
             LCurrentFillColor := FDarkColor;
             LCurrentTextColor := FDarkFontColor;
-            if not LUseGradientBorderEnabled then LCurrentBorderColorSolid := FDarkColor;
+            LCurrentBorderColor := FDarkColor;
             if LCurrentBorderThickness = 0 then LCurrentBorderThickness := 1;
-            LUseGradientFill := False;
           end;
         fbtLight:
           begin
             LCurrentFillColor := FLightColor;
             LCurrentTextColor := FLightFontColor;
-            if not LUseGradientBorderEnabled then LCurrentBorderColorSolid := FLightColor;
+            LCurrentBorderColor := FLightColor;
             if LCurrentBorderThickness = 0 then LCurrentBorderThickness := 1;
-            LUseGradientFill := False;
           end;
         fbtGradient:
           begin
             LCurrentTextColor := FContainedFontColor;
+            LCurrentFillColor := clNone;
           end;
       end;
 
-      var TempFillColor: TColor := LCurrentFillColor;
-      var TempBorderColorSolid: TColor := LCurrentBorderColorSolid;
-      var TempFillGradientStart: TColor := LCurrentFillGradientStart;
-      var TempFillGradientEnd: TColor := LCurrentFillGradientEnd;
-      var TempBorderGradientStart: TColor := LCurrentBorderGradientStart;
-      var TempBorderGradientEnd: TColor := LCurrentBorderGradientEnd;
-      var TempUseGradientFill: Boolean := LUseGradientFill;
-      var TempUseGradientBorder: Boolean := LUseGradientBorderEnabled;
+      var TempFillColor, TempBorderColor: TColor;
+      var TempGradientStartColor, TempGradientEndColor: TColor;
+
+      TempFillColor := LCurrentFillColor;
+      TempBorderColor := LCurrentBorderColor;
+      TempGradientStartColor := LCurrentGradientStartColor;
+      TempGradientEndColor := LCurrentGradientEndColor;
 
       if FIsPressed and not (csDesigning in ComponentState) then
       begin
         if FPressedColor <> clNone then
+          TempFillColor := FPressedColor
+        else if LCurrentButtonType = fbtGradient then
         begin
-          TempFillColor := FPressedColor;
-          TempUseGradientFill := False;
+          TempGradientStartColor := DarkenColor(FButtonColorSettings.Gradient.StartColor, 20);
+          TempGradientEndColor := DarkenColor(FButtonColorSettings.Gradient.EndColor, 20);
         end
-        else if TempUseGradientFill then
-        begin
-          TempFillGradientStart := DarkenColor(LCurrentFillGradientStart, 20);
-          TempFillGradientEnd := DarkenColor(LCurrentFillGradientEnd, 20);
-        end
-        else if TempFillColor <> clNone then
+        else if LCurrentFillColor <> clNone then
           TempFillColor := DarkenColor(LCurrentFillColor, 20);
 
-        if TempUseGradientBorder then
-        begin
-            TempBorderGradientStart := DarkenColor(LCurrentBorderGradientStart, 20);
-            TempBorderGradientEnd := DarkenColor(LCurrentBorderGradientEnd, 20);
-        end
-        else
-            TempBorderColorSolid := DarkenColor(LCurrentBorderColorSolid, 20);
-
         if LCurrentButtonType = fbtOutline then
-            LCurrentTextColor := TempBorderColorSolid;
+          TempBorderColor := DarkenColor(FBorderSettings.BorderColor, 20);
       end
       else if FIsHovering and not (csDesigning in ComponentState) then
       begin
         if FHoverColor <> clNone then
+          TempFillColor := FHoverColor
+        else if LCurrentButtonType = fbtGradient then
         begin
-          TempFillColor := FHoverColor;
-          TempUseGradientFill := False;
+          TempGradientStartColor := LightenColor(FButtonColorSettings.Gradient.StartColor, 15);
+          TempGradientEndColor := LightenColor(FButtonColorSettings.Gradient.EndColor, 15);
         end
-        else if TempUseGradientFill then
-        begin
-          TempFillGradientStart := LightenColor(LCurrentFillGradientStart, 15);
-          TempFillGradientEnd := LightenColor(LCurrentFillGradientEnd, 15);
-        end
-        else if TempFillColor <> clNone then
-            TempFillColor := LightenColor(LCurrentFillColor, 15);
+        else if LCurrentFillColor <> clNone then
+          TempFillColor := LightenColor(LCurrentFillColor, 15);
 
-        if TempUseGradientBorder then
-        begin
-            TempBorderGradientStart := LightenColor(LCurrentBorderGradientStart, 15);
-            TempBorderGradientEnd := LightenColor(LCurrentBorderGradientEnd, 15);
-        end
-        else
-            TempBorderColorSolid := LightenColor(LCurrentBorderColorSolid, 15);
-
-         if LCurrentButtonType = fbtOutline then
-            LCurrentTextColor := TempBorderColorSolid;
+        if LCurrentButtonType = fbtOutline then
+          TempBorderColor := LightenColor(FBorderSettings.BorderColor, 15);
       end;
 
       LCurrentFillColor := TempFillColor;
-      LCurrentBorderColorSolid := TempBorderColorSolid;
-      LCurrentFillGradientStart := TempFillGradientStart;
-      LCurrentFillGradientEnd := TempFillGradientEnd;
-      LCurrentBorderGradientStart := TempBorderGradientStart;
-      LCurrentBorderGradientEnd := TempBorderGradientEnd;
-      LUseGradientFill := TempUseGradientFill;
-      LUseGradientBorderEnabled := TempUseGradientBorder;
+      LCurrentBorderColor := TempBorderColor;
+      LCurrentGradientStartColor := TempGradientStartColor;
+      LCurrentGradientEndColor := TempGradientEndColor;
 
-      if (LCurrentButtonType = fbtOutline) and (FIsHovering or FIsPressed) and Enabled and not (csDesigning in ComponentState) then
+      if (LCurrentButtonType = fbtOutline) and (FIsHovering or FIsPressed) and
+         Enabled and not (csDesigning in ComponentState) then
       begin
-        if LUseGradientBorderEnabled then
-             LCurrentTextColor := LCurrentBorderGradientStart
-        else
-             LCurrentTextColor := LCurrentBorderColorSolid;
+        LCurrentTextColor := LCurrentBorderColor;
       end;
     end;
 
-    LGPRectClient := MakeRect(LRectVCL.Left.ToSingle, LRectVCL.Top.ToSingle, LRectVCL.Width.ToSingle, LRectVCL.Height.ToSingle);
+    LGPRectClient.X := Single(LRectVCL.Left);
+    LGPRectClient.Y := Single(LRectVCL.Top);
+    LGPRectClient.Width := Single(LRectVCL.Right - LRectVCL.Left);
+    LGPRectClient.Height := Single(LRectVCL.Bottom - LRectVCL.Top);
 
-    if LCurrentBorderThickness > 0 then
-      PathInset := LCurrentBorderThickness / 2.0
-    else
-      PathInset := 0.0;
+    if LCurrentBorderThickness > 0 then PathInset := LCurrentBorderThickness / 2.0
+    else PathInset := 0.0;
 
-    if LUseGradientBorderEnabled and (LCurrentBorderThickness > 0) then
-      PathDrawRect := LGPRectClient
-    else
-      PathDrawRect := MakeRect(LGPRectClient.X + PathInset, LGPRectClient.Y + PathInset,
+    PathDrawRect := MakeRect(LGPRectClient.X + PathInset, LGPRectClient.Y + PathInset,
                              LGPRectClient.Width - 2 * PathInset, LGPRectClient.Height - 2 * PathInset);
-
     if PathDrawRect.Width < 0 then PathDrawRect.Width := 0;
     if PathDrawRect.Height < 0 then PathDrawRect.Height := 0;
 
-    var RadiusForFillPath: Single;
-    if LUseGradientBorderEnabled and (LCurrentBorderThickness > 0) then
-         RadiusForFillPath := LCurrentRadiusEffective
-    else
-        RadiusForFillPath := Max(0, LCurrentRadiusEffective - PathInset);
+    var RadiusForPath: Single;
+    if LCurrentRadiusEffective > PathInset then RadiusForPath := LCurrentRadiusEffective - PathInset
+    else RadiusForPath := 0;
 
-    LGPFillPath := CreateGPRoundedRectPath(PathDrawRect, RadiusForFillPath);
+    LGPPath := CreateGPRoundedRectPath(PathDrawRect, RadiusForPath);
     try
-      if LUseGradientFill and Enabled then
+      if (LCurrentButtonType = fbtGradient) and Enabled then
       begin
         if (PathDrawRect.Width > 0) and (PathDrawRect.Height > 0) then
         begin
           LGPBrush := TGPLinearGradientBrush.Create(
             MakePoint(PathDrawRect.X, PathDrawRect.Y),
-            MakePoint(PathDrawRect.X, PathDrawRect.Y + PathDrawRect.Height),
-            ColorToARGB(LCurrentFillGradientStart),
-            ColorToARGB(LCurrentFillGradientEnd));
+            MakePoint(PathDrawRect.X + PathDrawRect.Width, PathDrawRect.Y), // Horizontal gradient
+            ColorToARGB(LCurrentGradientStartColor),
+            ColorToARGB(LCurrentGradientEndColor)
+          );
           try
-            LGPGraphics.FillPath(LGPBrush, LGPFillPath);
+            LGPGraphics.FillPath(LGPBrush, LGPPath);
           finally
             LGPBrush.Free;
           end;
@@ -649,91 +516,45 @@ begin
       end
       else if LCurrentFillColor <> clNone then
       begin
-        var FillAlpha: Byte := 255;
-        if LCurrentButtonType = fbtOutline then FillAlpha := 0;
-
+        var FillAlpha: Byte;
+        FillAlpha := IfThen(LCurrentButtonType = fbtOutline, 0, 255);
         LGPBrush := TGPSolidBrush.Create(ColorToARGB(LCurrentFillColor, FillAlpha));
         try
-          LGPGraphics.FillPath(LGPBrush, LGPFillPath);
+          LGPGraphics.FillPath(LGPBrush, LGPPath);
         finally
           LGPBrush.Free;
         end;
       end;
-    finally
-      LGPFillPath.Free;
-    end;
 
-    if LCurrentBorderThickness > 0 then
-    begin
-      if LUseGradientBorderEnabled and Enabled then
+      if LCurrentBorderThickness > 0 then
       begin
-        LGPBorderPath := CreateGPRoundedRectBorderPath(LGPRectClient, LCurrentRadiusEffective, LCurrentBorderThickness);
+        LGPPen := TGPPen.Create(ColorToARGB(LCurrentBorderColor), LCurrentBorderThickness);
         try
-          if LGPBorderPath.GetPointCount > 0 then
-          begin
-            LGPBrush := TGPLinearGradientBrush.Create(
-              MakePoint(LGPRectClient.X, LGPRectClient.Y),
-              MakePoint(LGPRectClient.X, LGPRectClient.Y + LGPRectClient.Height),
-              ColorToARGB(LCurrentBorderGradientStart),
-              ColorToARGB(LCurrentBorderGradientEnd));
-            try
-              LGPGraphics.FillPath(LGPBrush, LGPBorderPath);
-            finally
-              LGPBrush.Free;
-            end;
+          case LCurrentBorderStyle of
+            psDash: LGPPen.SetDashStyle(DashStyleDash);
+            psDot: LGPPen.SetDashStyle(DashStyleDot);
+            psDashDot: LGPPen.SetDashStyle(DashStyleDashDot);
+            psDashDotDot: LGPPen.SetDashStyle(DashStyleDashDotDot);
+          else
+            LGPPen.SetDashStyle(DashStyleSolid);
           end;
+          LGPGraphics.DrawPath(LGPPen, LGPPath);
         finally
-          LGPBorderPath.Free;
+          LGPPen.Free;
         end;
       end
-      else
+      else if (LCurrentButtonType = fbtOutline) and (LCurrentFillColor = clNone) and (LCurrentBorderThickness = 0) then
       begin
-        var BorderSolidDrawRect : TGPRectF;
-        BorderSolidDrawRect := MakeRect(LGPRectClient.X + PathInset, LGPRectClient.Y + PathInset,
-                                   LGPRectClient.Width - 2 * PathInset, LGPRectClient.Height - 2 * PathInset);
-        if BorderSolidDrawRect.Width <0 then BorderSolidDrawRect.Width := 0;
-        if BorderSolidDrawRect.Height <0 then BorderSolidDrawRect.Height := 0;
-
-        var RadiusForSolidBorderPath : Single;
-        RadiusForSolidBorderPath := Max(0, LCurrentRadiusEffective - PathInset);
-
-        LGPBorderPath := CreateGPRoundedRectPath(BorderSolidDrawRect, RadiusForSolidBorderPath);
+        LGPPen := TGPPen.Create(ColorToARGB(LCurrentBorderColor), 1.0);
         try
-          LGPPen := TGPPen.Create(ColorToARGB(LCurrentBorderColorSolid), LCurrentBorderThickness);
-          try
-            case LCurrentBorderStyle of
-              psDash: LGPPen.SetDashStyle(DashStyleDash);
-              psDot: LGPPen.SetDashStyle(DashStyleDot);
-              psDashDot: LGPPen.SetDashStyle(DashStyleDashDot);
-              psDashDotDot: LGPPen.SetDashStyle(DashStyleDashDotDot);
-            else
-              LGPPen.SetDashStyle(DashStyleSolid);
-            end;
-            if LGPBorderPath.GetPointCount > 0 then
-                LGPGraphics.DrawPath(LGPPen, LGPBorderPath);
-          finally
-            LGPPen.Free;
-          end;
+          LGPPen.SetDashStyle(DashStyleSolid);
+          LGPGraphics.DrawPath(LGPPen, LGPPath);
         finally
-          LGPBorderPath.Free;
+          LGPPen.Free;
         end;
       end;
-    end
-    else if (LCurrentButtonType = fbtOutline) and (LCurrentFillColor = clNone) and (LCurrentBorderThickness = 0) then
-    begin
-        LGPBorderPath := CreateGPRoundedRectPath(LGPRectClient, LCurrentRadiusEffective);
-        try
-            LGPPen := TGPPen.Create(ColorToARGB(LCurrentBorderColorSolid), 1.0);
-            try
-                LGPPen.SetDashStyle(DashStyleSolid);
-                 if LGPBorderPath.GetPointCount > 0 then
-                    LGPGraphics.DrawPath(LGPPen, LGPBorderPath);
-            finally
-                LGPPen.Free;
-            end;
-        finally
-            LGPBorderPath.Free;
-        end;
+    finally
+      LGPPath.Free;
     end;
 
     Canvas.Brush.Style := bsClear;

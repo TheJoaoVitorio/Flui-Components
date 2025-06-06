@@ -1,0 +1,203 @@
+unit FLUI.Classes;
+
+interface
+
+uses
+  System.Math, System.SysUtils, System.Classes,
+  Vcl.Graphics;
+
+type
+  TFLUIGradientColor = class;
+
+  TFLUIBorderSettings = class(TPersistent)
+  private
+    FOnChange: TNotifyEvent;
+    FRadius: Integer;
+    //FBackgroundColor: TColor;
+    FBorderColor: TColor;
+    FBorderThickness: Integer;
+    FBorderStyle: TPenStyle;
+    FGradient: TFLUIGradientColor;
+
+    // Setters
+    procedure SetRadius(const Value: Integer);
+    procedure SetBorderColor(const Value: TColor);
+    procedure SetBorderThickness(const Value: Integer);
+    procedure SetBorderStyle(const Value: TPenStyle);
+    procedure SetGradient(const Value: TFLUIGradientColor);
+
+  protected
+    procedure Changed; virtual;
+    procedure GradientChanged(Sender: TObject);
+  public
+    constructor Create;
+    destructor Destroy; override;
+    procedure Assign(Source: TPersistent); override;
+  published
+    property Radius: Integer read FRadius write SetRadius default 24;
+    property BorderColor: TColor read FBorderColor write SetBorderColor default clWindowText;
+    property BorderThickness: Integer read FBorderThickness write SetBorderThickness default 1;
+    property BorderStyle: TPenStyle read FBorderStyle write SetBorderStyle default psSolid;
+    property Gradient: TFLUIGradientColor read FGradient write SetGradient;
+    property OnChange: TNotifyEvent read FOnChange write FOnChange;
+  end;
+
+  TFLUIGradientColor = class(TPersistent)
+  private
+    FStartColor: TColor;
+    FEndColor: TColor;
+    FOnChange: TNotifyEvent;
+    procedure SetStartColor(const Value: TColor);
+    procedure SetEndColor(const Value: TColor);
+  protected
+    procedure Changed; virtual;
+  public
+    constructor Create;
+    procedure Assign(Source: TPersistent); override;
+  published
+    property StartColor: TColor read FStartColor write SetStartColor default clWhite;
+    property EndColor: TColor read FEndColor write SetEndColor default clSilver;
+    property OnChange: TNotifyEvent read FOnChange write FOnChange;
+  end;
+
+implementation
+
+// -----------------------------------------------------------------------------
+// TFLUIGradientColor
+// -----------------------------------------------------------------------------
+
+constructor TFLUIGradientColor.Create;
+begin
+  inherited Create;
+  FStartColor := clWhite;
+  FEndColor := clSilver;
+end;
+
+procedure TFLUIGradientColor.Assign(Source: TPersistent);
+begin
+  if Source is TFLUIGradientColor then
+  begin
+    Self.FStartColor := TFLUIGradientColor(Source).FStartColor;
+    Self.FEndColor := TFLUIGradientColor(Source).FEndColor;
+    Self.Changed;
+  end
+  else
+    inherited Assign(Source);
+end;
+
+procedure TFLUIGradientColor.Changed;
+begin
+  if Assigned(FOnChange) then
+    FOnChange(Self);
+end;
+
+procedure TFLUIGradientColor.SetStartColor(const Value: TColor);
+begin
+  if FStartColor <> Value then
+  begin
+    FStartColor := Value;
+    Changed;
+  end;
+end;
+
+procedure TFLUIGradientColor.SetEndColor(const Value: TColor);
+begin
+  if FEndColor <> Value then
+  begin
+    FEndColor := Value;
+    Changed;
+  end;
+end;
+
+
+// -----------------------------------------------------------------------------
+// TFLUIBorderSettings
+// -----------------------------------------------------------------------------
+
+constructor TFLUIBorderSettings.Create;
+begin
+  inherited Create;
+  FRadius := 24;
+  FBorderColor := clWindowText;
+  FBorderThickness := 1;
+  FBorderStyle := psSolid;
+
+  FGradient := TFLUIGradientColor.Create;
+  FGradient.OnChange := Self.GradientChanged;
+end;
+
+destructor TFLUIBorderSettings.Destroy;
+begin
+  FGradient.Free;
+  inherited Destroy;
+end;
+
+procedure TFLUIBorderSettings.Assign(Source: TPersistent);
+begin
+  if Source is TFLUIBorderSettings then
+  begin
+    Self.FRadius := TFLUIBorderSettings(Source).FRadius;
+    Self.FBorderColor := TFLUIBorderSettings(Source).FBorderColor;
+    Self.FBorderThickness := TFLUIBorderSettings(Source).FBorderThickness;
+    Self.FBorderStyle := TFLUIBorderSettings(Source).FBorderStyle;
+    Self.FGradient.Assign(TFLUIBorderSettings(Source).FGradient);
+    Changed;
+  end
+  else
+    inherited Assign(Source);
+end;
+
+procedure TFLUIBorderSettings.Changed;
+begin
+  if Assigned(FOnChange) then
+    FOnChange(Self);
+end;
+
+procedure TFLUIBorderSettings.GradientChanged(Sender: TObject);
+begin
+  Changed;
+end;
+
+procedure TFLUIBorderSettings.SetGradient(const Value: TFLUIGradientColor);
+begin
+  FGradient.Assign(Value);
+end;
+
+procedure TFLUIBorderSettings.SetRadius(const Value: Integer);
+begin
+  if FRadius <> Value then
+  begin
+    FRadius := Max(0, Value);
+    Changed;
+  end;
+end;
+
+
+procedure TFLUIBorderSettings.SetBorderColor(const Value: TColor);
+begin
+  if FBorderColor <> Value then
+  begin
+    FBorderColor := Value;
+    Changed;
+  end;
+end;
+
+procedure TFLUIBorderSettings.SetBorderThickness(const Value: Integer);
+begin
+  if FBorderThickness <> Value then
+  begin
+    FBorderThickness := Max(0, Value);
+    Changed;
+  end;
+end;
+
+procedure TFLUIBorderSettings.SetBorderStyle(const Value: TPenStyle);
+begin
+  if FBorderStyle <> Value then
+  begin
+    FBorderStyle := Value;
+    Changed;
+  end;
+end;
+
+end.

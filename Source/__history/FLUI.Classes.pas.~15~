@@ -1,0 +1,260 @@
+unit FLUI.Classes;
+
+interface
+
+uses
+  System.Math, System.SysUtils, System.Classes,
+  Vcl.Graphics;
+
+type
+  TFLUIButtonType = (fbtContained, fbtOutline, fbtDark, fbtLight, fbtGradient);
+  TFLUIGradientColor = class;
+  TFLUIButtonColorSettings = class;
+
+  TFLUIBorderSettings = class(TPersistent)
+  private
+    FOnChange: TNotifyEvent;
+    FRadius: Integer;
+    FBorderColor: TColor;
+    FBorderThickness: Integer;
+    FBorderStyle: TPenStyle;
+
+    procedure SetRadius(const Value: Integer);
+    procedure SetBorderColor(const Value: TColor);
+    procedure SetBorderThickness(const Value: Integer);
+    procedure SetBorderStyle(const Value: TPenStyle);
+  protected
+    procedure Changed; virtual;
+  public
+    constructor Create;
+    procedure Assign(Source: TPersistent); override;
+  published
+    property Radius: Integer read FRadius write SetRadius default 8;
+    property BorderColor: TColor read FBorderColor write SetBorderColor default clWindowText;
+    property BorderThickness: Integer read FBorderThickness write SetBorderThickness default 1;
+    property BorderStyle: TPenStyle read FBorderStyle write SetBorderStyle default psSolid;
+    property OnChange: TNotifyEvent read FOnChange write FOnChange;
+  end;
+
+  TFLUIGradientColor = class(TPersistent)
+  private
+    FStartColor: TColor;
+    FEndColor: TColor;
+    FOnChange: TNotifyEvent;
+    procedure SetStartColor(const Value: TColor);
+    procedure SetEndColor(const Value: TColor);
+  protected
+    procedure Changed; virtual;
+  public
+    constructor Create;
+    procedure Assign(Source: TPersistent); override;
+  published
+    property StartColor: TColor read FStartColor write SetStartColor default clWhite;
+    property EndColor: TColor read FEndColor write SetEndColor default clSilver;
+    property OnChange: TNotifyEvent read FOnChange write FOnChange;
+  end;
+
+  TFLUIButtonColorSettings = class(TPersistent)
+  private
+    FOnChange: TNotifyEvent;
+    FFillColor: TColor;
+    FGradient: TFLUIGradientColor;
+    FButtonType: TFLUIButtonType;
+
+    procedure SetFillColor(const Value: TColor);
+    procedure SetGradient(const Value: TFLUIGradientColor);
+    procedure SetButtonType(const Value: TFLUIButtonType);
+  protected
+    procedure Changed; virtual;
+    procedure GradientChanged(Sender: TObject);
+  public
+    constructor Create;
+    destructor Destroy; override;
+    procedure Assign(Source: TPersistent); override;
+  published
+    property FillColor: TColor read FFillColor write SetFillColor default clBtnFace;
+    property Gradient: TFLUIGradientColor read FGradient write SetGradient;
+    property ButtonType: TFLUIButtonType read FButtonType write SetButtonType default TFLUIButtonType.fbtContained;
+    property OnChange: TNotifyEvent read FOnChange write FOnChange;
+  end;
+
+implementation
+
+{ TFLUIGradientColor }
+
+constructor TFLUIGradientColor.Create;
+begin
+  inherited Create;
+  FStartColor := clWhite;
+  FEndColor := clSilver;
+end;
+
+procedure TFLUIGradientColor.Assign(Source: TPersistent);
+begin
+  if Source is TFLUIGradientColor then
+  begin
+    Self.FStartColor := TFLUIGradientColor(Source).FStartColor;
+    Self.FEndColor := TFLUIGradientColor(Source).FEndColor;
+    Self.Changed;
+  end
+  else
+    inherited Assign(Source);
+end;
+
+procedure TFLUIGradientColor.Changed;
+begin
+  if Assigned(FOnChange) then
+    FOnChange(Self);
+end;
+
+procedure TFLUIGradientColor.SetStartColor(const Value: TColor);
+begin
+  if FStartColor <> Value then
+  begin
+    FStartColor := Value;
+    Changed;
+  end;
+end;
+
+procedure TFLUIGradientColor.SetEndColor(const Value: TColor);
+begin
+  if FEndColor <> Value then
+  begin
+    FEndColor := Value;
+    Changed;
+  end;
+end;
+
+{ TFLUIBorderSettings }
+
+constructor TFLUIBorderSettings.Create;
+begin
+  inherited Create;
+  FRadius := 8;
+  FBorderColor := clWindowText;
+  FBorderThickness := 1;
+  FBorderStyle := psSolid;
+end;
+
+procedure TFLUIBorderSettings.Assign(Source: TPersistent);
+begin
+  if Source is TFLUIBorderSettings then
+  begin
+    Self.FRadius := TFLUIBorderSettings(Source).FRadius;
+    Self.FBorderColor := TFLUIBorderSettings(Source).FBorderColor;
+    Self.FBorderThickness := TFLUIBorderSettings(Source).FBorderThickness;
+    Self.FBorderStyle := TFLUIBorderSettings(Source).FBorderStyle;
+    Changed;
+  end
+  else
+    inherited Assign(Source);
+end;
+
+procedure TFLUIBorderSettings.Changed;
+begin
+  if Assigned(FOnChange) then
+    FOnChange(Self);
+end;
+
+procedure TFLUIBorderSettings.SetRadius(const Value: Integer);
+begin
+  if FRadius <> Value then
+  begin
+    FRadius := Max(0, Value);
+    Changed;
+  end;
+end;
+
+procedure TFLUIBorderSettings.SetBorderColor(const Value: TColor);
+begin
+  if FBorderColor <> Value then
+  begin
+    FBorderColor := Value;
+    Changed;
+  end;
+end;
+
+procedure TFLUIBorderSettings.SetBorderThickness(const Value: Integer);
+begin
+  if FBorderThickness <> Value then
+  begin
+    FBorderThickness := Max(0, Value);
+    Changed;
+  end;
+end;
+
+procedure TFLUIBorderSettings.SetBorderStyle(const Value: TPenStyle);
+begin
+  if FBorderStyle <> Value then
+  begin
+    FBorderStyle := Value;
+    Changed;
+  end;
+end;
+
+{ TFLUIButtonColorSettings }
+
+constructor TFLUIButtonColorSettings.Create;
+begin
+  inherited Create;
+  FFillColor := clBtnFace;
+  FGradient := TFLUIGradientColor.Create;
+  FGradient.OnChange := Self.GradientChanged;
+  FButtonType := TFLUIButtonType.fbtContained;
+end;
+
+destructor TFLUIButtonColorSettings.Destroy;
+begin
+  FGradient.Free;
+  inherited Destroy;
+end;
+
+procedure TFLUIButtonColorSettings.Assign(Source: TPersistent);
+begin
+  if Source is TFLUIButtonColorSettings then
+  begin
+    Self.FFillColor := TFLUIButtonColorSettings(Source).FFillColor;
+    Self.FGradient.Assign(TFLUIButtonColorSettings(Source).FGradient);
+    Self.FButtonType := TFLUIButtonColorSettings(Source).FButtonType;
+    Changed;
+  end
+  else
+    inherited Assign(Source);
+end;
+
+procedure TFLUIButtonColorSettings.Changed;
+begin
+  if Assigned(FOnChange) then
+    FOnChange(Self);
+end;
+
+procedure TFLUIButtonColorSettings.GradientChanged(Sender: TObject);
+begin
+  Changed;
+end;
+
+procedure TFLUIButtonColorSettings.SetFillColor(const Value: TColor);
+begin
+  if FFillColor <> Value then
+  begin
+    FFillColor := Value;
+    Changed;
+  end;
+end;
+
+procedure TFLUIButtonColorSettings.SetGradient(const Value: TFLUIGradientColor);
+begin
+  FGradient.Assign(Value);
+end;
+
+procedure TFLUIButtonColorSettings.SetButtonType(const Value: TFLUIButtonType);
+begin
+  if FButtonType <> Value then
+  begin
+    FButtonType := Value;
+    Changed;
+  end;
+end;
+
+end.
+

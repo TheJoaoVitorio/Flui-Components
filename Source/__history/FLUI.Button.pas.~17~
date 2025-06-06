@@ -3,6 +3,8 @@
 interface
 
 uses
+  FLUI.Classes,
+
   System.SysUtils, System.Classes, System.UITypes, System.Math,
   Winapi.Windows, Winapi.Messages,
   Vcl.Controls, Vcl.Graphics, Vcl.StdCtrls, Vcl.Themes,
@@ -12,51 +14,14 @@ uses
 
 type
 
-  TFLUIBorderSettings = class(TPersistent)
-  private
-    FOnChange: TNotifyEvent;
-    FRadius: Integer;
-    FBackgroundColor: TColor;
-    FBorderColor: TColor; // Cor da borda
-    FBorderThickness: Integer;
-    FBorderStyle: TPenStyle;
-    FGradientStartColor: TColor; // New
-    FGradientEndColor: TColor; // New
 
-    // Setters
-    procedure SetRadius(const Value: Integer);
-    procedure SetBackgroundColor(const Value: TColor);
-    procedure SetBorderColor(const Value: TColor);
-    procedure SetBorderThickness(const Value: Integer);
-    procedure SetBorderStyle(const Value: TPenStyle);
-    procedure SetGradientStartColor(const Value: TColor); // New
-    procedure SetGradientEndColor(const Value: TColor); // New
-  protected
-    procedure Changed; virtual;
-  public
-    constructor Create;
-    procedure Assign(Source: TPersistent); override;
 
-    property Radius: Integer read FRadius write SetRadius default 8;
-    property BackgroundColor: TColor read FBackgroundColor
-      write SetBackgroundColor default clBtnFace;
-    property BorderColor: TColor read FBorderColor write SetBorderColor
-      default clWindowText;
-    property BorderThickness: Integer read FBorderThickness
-      write SetBorderThickness default 1;
-    property BorderStyle: TPenStyle read FBorderStyle write SetBorderStyle
-      default psSolid;
-    property GradientStartColor: TColor read FGradientStartColor
-      write SetGradientStartColor default clWhite; // New
-    property GradientEndColor: TColor read FGradientEndColor
-      write SetGradientEndColor default clSilver; // New
-    property OnChange: TNotifyEvent read FOnChange write FOnChange;
-  end;
+
 
   TFLUIButtonType = (fbtContained, fbtOutline, fbtDark, fbtLight, fbtGradient);
   // Added fbtGradient
 
-  // Declara��o da classe TFLUIButton
+
   TFLUIButton = class(TCustomControl)
   private
     FCaption: string;
@@ -97,6 +62,7 @@ type
     procedure SetButtonGradientStartColor(const Value: TColor);
     function GetButtonGradientEndColor: TColor;
     procedure SetButtonGradientEndColor(const Value: TColor);
+    procedure SetBorderSettings(const Value: TFLUIBorderSettings);
 
   protected
     procedure Paint; override;
@@ -117,40 +83,25 @@ type
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
   published
+    property BorderSettings : TFLUIBorderSettings read FBorderSettings write SetBorderSettings;
     property Caption: string read FCaption write SetCaption;
-    property ButtonType: TFLUIButtonType read FButtonType write SetButtonType
-      default TFLUIButtonType.fbtContained;
-    property CornerRadius: Integer read GetCornerRadius write SetCornerRadius
-      default 8;
-    property ButtonFillColor: TColor read GetButtonFillColor
-      write SetButtonFillColor default clBtnFace;
-    property ButtonBorderColor: TColor read GetButtonBorderColor
-      write SetButtonBorderColor default clWindowText;
-    property ButtonBorderThickness: Integer read GetButtonBorderThickness
-      write SetButtonBorderThickness default 1;
-    property ButtonDrawingBorderStyle: TPenStyle
-      read GetButtonDrawingBorderStyle write SetButtonDrawingBorderStyle
-      default psSolid;
-    // New published gradient properties
-    property ButtonGradientStartColor: TColor read GetButtonGradientStartColor
-      write SetButtonGradientStartColor default clWhite;
-    property ButtonGradientEndColor: TColor read GetButtonGradientEndColor
-      write SetButtonGradientEndColor default clSilver;
+    property ButtonType: TFLUIButtonType read FButtonType write SetButtonType default TFLUIButtonType.fbtContained;
+    property CornerRadius: Integer read GetCornerRadius write SetCornerRadius default 8;
+    property ButtonFillColor: TColor read GetButtonFillColor write SetButtonFillColor default clBtnFace;
+    property ButtonBorderColor: TColor read GetButtonBorderColor write SetButtonBorderColor default clWindowText;
+    property ButtonBorderThickness: Integer read GetButtonBorderThickness write SetButtonBorderThickness default 1;
+    property ButtonDrawingBorderStyle: TPenStyle read GetButtonDrawingBorderStyle write SetButtonDrawingBorderStyle default psSolid;
 
-    property ContainedFontColor: TColor read FContainedFontColor
-      write SetContainedFontColor default clHighlightText;
-    property DarkColor: TColor read FDarkColor write SetDarkColor
-      default clBlack;
-    property DarkFontColor: TColor read FDarkFontColor write SetDarkFontColor
-      default clWhite;
-    property LightColor: TColor read FLightColor write SetLightColor
-      default clBtnFace;
-    property LightFontColor: TColor read FLightFontColor write SetLightFontColor
-      default clBtnText;
-    property HoverColor: TColor read FHoverColor write SetHoverColor
-      default clNone;
-    property PressedColor: TColor read FPressedColor write SetPressedColor
-      default clNone;
+    property ButtonGradientStartColor: TColor read GetButtonGradientStartColor write SetButtonGradientStartColor default clWhite;
+    property ButtonGradientEndColor: TColor read GetButtonGradientEndColor write SetButtonGradientEndColor default clSilver;
+
+    property ContainedFontColor: TColor read FContainedFontColor write SetContainedFontColor default clHighlightText;
+    property DarkColor: TColor read FDarkColor write SetDarkColor default clBlack;
+    property DarkFontColor: TColor read FDarkFontColor write SetDarkFontColor default clWhite;
+    property LightColor: TColor read FLightColor write SetLightColor default clBtnFace;
+    property LightFontColor: TColor read FLightFontColor write SetLightFontColor default clBtnText;
+    property HoverColor: TColor read FHoverColor write SetHoverColor default clNone;
+    property PressedColor: TColor read FPressedColor write SetPressedColor default clNone;
     property Align;
     property Anchors;
     property Constraints;
@@ -167,10 +118,8 @@ type
     property Hint;
     property ParentColor;
     property TabOrder;
-    property TabStop default True;
+    property TabStop default False;
   end;
-
-{$R Icon.rc}
 
 
 procedure Register;
@@ -212,106 +161,7 @@ begin
   Result := TColor(RGB(R, G, B));
 end;
 
-{ TFLUIBorderSettings }
-constructor TFLUIBorderSettings.Create;
-begin
-  inherited Create;
-  FRadius := 8;
-  FBackgroundColor := clBtnFace;
-  FBorderColor := clWindowText;
-  FBorderThickness := 1;
-  FBorderStyle := psSolid;
-  FGradientStartColor := clWhite; // Initialize
-  FGradientEndColor := clSilver; // Initialize
-end;
 
-procedure TFLUIBorderSettings.Assign(Source: TPersistent);
-begin
-  if Source is TFLUIBorderSettings then
-  begin
-    Self.FRadius := TFLUIBorderSettings(Source).FRadius;
-    Self.FBackgroundColor := TFLUIBorderSettings(Source).FBackgroundColor;
-    Self.FBorderColor := TFLUIBorderSettings(Source).FBorderColor;
-    Self.FBorderThickness := TFLUIBorderSettings(Source).FBorderThickness;
-    Self.FBorderStyle := TFLUIBorderSettings(Source).FBorderStyle;
-    Self.FGradientStartColor := TFLUIBorderSettings(Source).FGradientStartColor;
-    // Add this
-    Self.FGradientEndColor := TFLUIBorderSettings(Source).FGradientEndColor;
-    // Add this
-    Changed;
-  end
-  else
-    inherited Assign(Source);
-end;
-
-procedure TFLUIBorderSettings.Changed;
-begin
-  if Assigned(FOnChange) then
-    FOnChange(Self);
-end;
-
-procedure TFLUIBorderSettings.SetRadius(const Value: Integer);
-begin
-  if FRadius <> Value then
-  begin
-    FRadius := Max(0, Value);
-    Changed;
-  end;
-end;
-
-procedure TFLUIBorderSettings.SetBackgroundColor(const Value: TColor);
-begin
-  if FBackgroundColor <> Value then
-  begin
-    FBackgroundColor := Value;
-    Changed;
-  end;
-end;
-
-procedure TFLUIBorderSettings.SetBorderColor(const Value: TColor);
-begin
-  if FBorderColor <> Value then
-  begin
-    FBorderColor := Value;
-    Changed;
-  end;
-end;
-
-procedure TFLUIBorderSettings.SetBorderThickness(const Value: Integer);
-begin
-  if FBorderThickness <> Value then
-  begin
-    FBorderThickness := Max(0, Value);
-    Changed;
-  end;
-end;
-
-procedure TFLUIBorderSettings.SetBorderStyle(const Value: TPenStyle);
-begin
-  if FBorderStyle <> Value then
-  begin
-    FBorderStyle := Value;
-    Changed;
-  end;
-end;
-
-procedure TFLUIBorderSettings.SetGradientStartColor(const Value: TColor);
-begin
-  if FGradientStartColor <> Value then
-  begin
-    FGradientStartColor := Value;
-    Changed;
-  end;
-end;
-
-procedure TFLUIBorderSettings.SetGradientEndColor(const Value: TColor);
-begin
-  if FGradientEndColor <> Value then
-  begin
-    FGradientEndColor := Value;
-    Changed;
-  end;
-end;
 
 { TFLUIButton }
 constructor TFLUIButton.Create(AOwner: TComponent);
@@ -322,7 +172,7 @@ begin
 
   Width := 100;
   Height := 30;
-  TabStop := True;
+  TabStop := False;
   FCaption := Name;
   FBorderSettings := TFLUIBorderSettings.Create;
   FBorderSettings.OnChange := BorderSettingsChanged;
@@ -387,6 +237,12 @@ end;
 function TFLUIButton.GetButtonBorderColor: TColor;
 begin
   Result := FBorderSettings.BorderColor;
+end;
+
+procedure TFLUIButton.SetBorderSettings(const Value: TFLUIBorderSettings);
+begin
+  if not (Value = Value) then
+    FBorderSettings := Value;
 end;
 
 procedure TFLUIButton.SetButtonBorderColor(const Value: TColor);
