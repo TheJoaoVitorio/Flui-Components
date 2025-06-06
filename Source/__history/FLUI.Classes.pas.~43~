@@ -1,0 +1,398 @@
+unit FLUI.Classes;
+
+interface
+
+uses
+  System.Math, System.SysUtils, System.Classes,
+  Vcl.Graphics, System.Types,
+  VCL.Controls, VCL.ExtCtrls;
+
+type
+  TFLUIButtonType = (fbtContained, fbtOutline, fbtDark, fbtLight, fbtGradient);
+  TFLUIGradientColor = class;
+  TFLUIButtonColorSettings = class;
+  TFLUIBorderSettings = class;
+  TFLUIGridLayout = class;
+
+  TFLUIGradientColor = class(TPersistent)
+  private
+    FStartColor: TColor;
+    FEndColor: TColor;
+    FEnabled: Boolean;
+    FOnChange: TNotifyEvent;
+    procedure SetStartColor(const Value: TColor);
+    procedure SetEndColor(const Value: TColor);
+    procedure SetEnabled(const Value: Boolean);
+  protected
+    procedure Changed; virtual;
+  public
+    constructor Create;
+    procedure Assign(Source: TPersistent); override;
+  published
+    property Enabled: Boolean read FEnabled write SetEnabled default True;
+    property StartColor: TColor read FStartColor write SetStartColor default clWhite;
+    property EndColor: TColor read FEndColor write SetEndColor default clSilver;
+    property OnChange: TNotifyEvent read FOnChange write FOnChange;
+  end;
+
+  TFLUIBorderSettings = class(TPersistent)
+  private
+    FOnChange: TNotifyEvent;
+    FRadius: Integer;
+    FBorderColor: TColor;
+    FBorderThickness: Integer;
+    FBorderStyle: TPenStyle;
+    FUseGradientBorder: Boolean;
+    FGradient: TFLUIGradientColor;
+
+    procedure SetRadius(const Value: Integer);
+    procedure SetBorderColor(const Value: TColor);
+    procedure SetBorderThickness(const Value: Integer);
+    procedure SetBorderStyle(const Value: TPenStyle);
+    procedure SetUseGradientBorder(const Value: Boolean);
+    procedure SetGradient(const Value: TFLUIGradientColor);
+  protected
+    procedure Changed; virtual;
+    procedure GradientChanged(Sender: TObject);
+  public
+    constructor Create;
+    destructor Destroy; override;
+    procedure Assign(Source: TPersistent); override;
+  published
+    property Radius: Integer read FRadius write SetRadius default 8;
+    property BorderColor: TColor read FBorderColor write SetBorderColor default clWindowText;
+    property BorderThickness: Integer read FBorderThickness write SetBorderThickness default 1;
+    property BorderStyle: TPenStyle read FBorderStyle write SetBorderStyle default psSolid;
+    property UseGradientBorder: Boolean read FUseGradientBorder write SetUseGradientBorder default False;
+    property Gradient: TFLUIGradientColor read FGradient write SetGradient;
+    property OnChange: TNotifyEvent read FOnChange write FOnChange;
+  end;
+
+  TFLUIButtonColorSettings = class(TPersistent)
+  private
+    FOnChange: TNotifyEvent;
+    FFillColor: TColor;
+    FGradient: TFLUIGradientColor;
+    FButtonType: TFLUIButtonType;
+
+    procedure SetFillColor(const Value: TColor);
+    procedure SetGradient(const Value: TFLUIGradientColor);
+    procedure SetButtonType(const Value: TFLUIButtonType);
+  protected
+    procedure Changed; virtual;
+    procedure FillGradientChanged(Sender: TObject);
+  public
+    constructor Create;
+    destructor Destroy; override;
+    procedure Assign(Source: TPersistent); override;
+  published
+    property FillColor: TColor read FFillColor write SetFillColor default clBtnFace;
+    property Gradient: TFLUIGradientColor read FGradient write SetGradient;
+    property ButtonType: TFLUIButtonType read FButtonType write SetButtonType default TFLUIButtonType.fbtContained;
+    property OnChange: TNotifyEvent read FOnChange write FOnChange;
+  end;
+
+  TFLUIGridLayout = class(TPanel)
+  private
+    FMaxColumns : Integer;
+    FGap : Integer;
+    FSingleColumnAsRow : Boolean;
+    FItemWidth : Integer;
+    FItemHeight : Integer;
+    FRowItemHeight : Integer;
+  protected
+    procedure Resize; override;
+  public
+    constructor Create(aOwner : TComponent); override;
+    function GetColumnCount : Integer;
+  published
+    property MaxColumns : Integer read FMaxColumns write FMaxColumns default 5;
+    property Gap : Integer read FGap write FGap default 18;
+    property SingleColumnAsRow : Boolean read FSingleColumnAsRow write FSingleColumnAsRow default true;
+    property ItemWidth : Integer read FItemWidth write FItemWidth default 250;
+    property ItemHeight : Integer read FItemHeight write FItemHeight default 80;
+    property RowItemHeight : Integer read FRowItemHeight write FRowItemHeight default 60;
+  end;
+
+
+
+implementation
+
+{ TFLUIGradientColor }
+
+constructor TFLUIGradientColor.Create;
+begin
+  inherited Create;
+  FEnabled := True;
+  FStartColor := clWhite;
+  FEndColor := clSilver;
+end;
+
+procedure TFLUIGradientColor.Assign(Source: TPersistent);
+begin
+  if Source is TFLUIGradientColor then
+  begin
+    Self.FEnabled := TFLUIGradientColor(Source).FEnabled;
+    Self.FStartColor := TFLUIGradientColor(Source).FStartColor;
+    Self.FEndColor := TFLUIGradientColor(Source).FEndColor;
+    Self.Changed;
+  end
+  else
+    inherited Assign(Source);
+end;
+
+procedure TFLUIGradientColor.Changed;
+begin
+  if Assigned(FOnChange) then
+    FOnChange(Self);
+end;
+
+procedure TFLUIGradientColor.SetEnabled(const Value: Boolean);
+begin
+  if FEnabled <> Value then
+  begin
+    FEnabled := Value;
+    Changed;
+  end;
+end;
+
+procedure TFLUIGradientColor.SetStartColor(const Value: TColor);
+begin
+  if FStartColor <> Value then
+  begin
+    FStartColor := Value;
+    Changed;
+  end;
+end;
+
+procedure TFLUIGradientColor.SetEndColor(const Value: TColor);
+begin
+  if FEndColor <> Value then
+  begin
+    FEndColor := Value;
+    Changed;
+  end;
+end;
+
+{ TFLUIBorderSettings }
+
+constructor TFLUIBorderSettings.Create;
+begin
+  inherited Create;
+  FRadius := 8;
+  FBorderColor := clWindowText;
+  FBorderThickness := 1;
+  FBorderStyle := psSolid;
+  FUseGradientBorder := False;
+  FGradient := TFLUIGradientColor.Create;
+  FGradient.OnChange := Self.GradientChanged;
+end;
+
+destructor TFLUIBorderSettings.Destroy;
+begin
+  FGradient.Free;
+  inherited Destroy;
+end;
+
+procedure TFLUIBorderSettings.Assign(Source: TPersistent);
+begin
+  if Source is TFLUIBorderSettings then
+  begin
+    Self.FRadius := TFLUIBorderSettings(Source).FRadius;
+    Self.FBorderColor := TFLUIBorderSettings(Source).FBorderColor;
+    Self.FBorderThickness := TFLUIBorderSettings(Source).FBorderThickness;
+    Self.FBorderStyle := TFLUIBorderSettings(Source).FBorderStyle;
+    Self.FUseGradientBorder := TFLUIBorderSettings(Source).FUseGradientBorder;
+    Self.FGradient.Assign(TFLUIBorderSettings(Source).FGradient);
+    Changed;
+  end
+  else
+    inherited Assign(Source);
+end;
+
+procedure TFLUIBorderSettings.Changed;
+begin
+  if Assigned(FOnChange) then
+    FOnChange(Self);
+end;
+
+procedure TFLUIBorderSettings.GradientChanged(Sender: TObject);
+begin
+  Changed;
+end;
+
+procedure TFLUIBorderSettings.SetRadius(const Value: Integer);
+begin
+  if FRadius <> Value then
+  begin
+    FRadius := Max(0, Value);
+    Changed;
+  end;
+end;
+
+procedure TFLUIBorderSettings.SetBorderColor(const Value: TColor);
+begin
+  if FBorderColor <> Value then
+  begin
+    FBorderColor := Value;
+    Changed;
+  end;
+end;
+
+procedure TFLUIBorderSettings.SetBorderThickness(const Value: Integer);
+begin
+  if FBorderThickness <> Value then
+  begin
+    FBorderThickness := Max(0, Value);
+    Changed;
+  end;
+end;
+
+procedure TFLUIBorderSettings.SetBorderStyle(const Value: TPenStyle);
+begin
+  if FBorderStyle <> Value then
+  begin
+    FBorderStyle := Value;
+    Changed;
+  end;
+end;
+
+procedure TFLUIBorderSettings.SetUseGradientBorder(const Value: Boolean);
+begin
+  if FUseGradientBorder <> Value then
+  begin
+    FUseGradientBorder := Value;
+    Changed;
+  end;
+end;
+
+procedure TFLUIBorderSettings.SetGradient(const Value: TFLUIGradientColor);
+begin
+  FGradient.Assign(Value);
+end;
+
+{ TFLUIButtonColorSettings }
+
+constructor TFLUIButtonColorSettings.Create;
+begin
+  inherited Create;
+  FFillColor := clBtnFace;
+  FGradient := TFLUIGradientColor.Create;
+  FGradient.OnChange := Self.FillGradientChanged;
+  FButtonType := TFLUIButtonType.fbtContained;
+end;
+
+destructor TFLUIButtonColorSettings.Destroy;
+begin
+  FGradient.Free;
+  inherited Destroy;
+end;
+
+procedure TFLUIButtonColorSettings.Assign(Source: TPersistent);
+begin
+  if Source is TFLUIButtonColorSettings then
+  begin
+    Self.FFillColor := TFLUIButtonColorSettings(Source).FFillColor;
+    Self.FGradient.Assign(TFLUIButtonColorSettings(Source).FGradient);
+    Self.FButtonType := TFLUIButtonColorSettings(Source).FButtonType;
+    Changed;
+  end
+  else
+    inherited Assign(Source);
+end;
+
+procedure TFLUIButtonColorSettings.Changed;
+begin
+  if Assigned(FOnChange) then
+    FOnChange(Self);
+end;
+
+procedure TFLUIButtonColorSettings.FillGradientChanged(Sender: TObject);
+begin
+  Changed;
+end;
+
+procedure TFLUIButtonColorSettings.SetFillColor(const Value: TColor);
+begin
+  if FFillColor <> Value then
+  begin
+    FFillColor := Value;
+    Changed;
+  end;
+end;
+
+procedure TFLUIButtonColorSettings.SetGradient(const Value: TFLUIGradientColor);
+begin
+  FGradient.Assign(Value);
+end;
+
+procedure TFLUIButtonColorSettings.SetButtonType(const Value: TFLUIButtonType);
+begin
+  if FButtonType <> Value then
+  begin
+    FButtonType := Value;
+    Changed;
+  end;
+end;
+
+{ TFLUIGridLayout }
+
+constructor TFLUIGridLayout.Create(aOwner: TComponent);
+begin
+  inherited;
+  BevelOuter := bvNone;
+  Color := clWhite;
+  ShowCaption := False;
+
+  FMaxColumns := 5;
+  FGap := 18;
+  FSingleColumnAsRow := True;
+  FItemWidth := 250;
+  FItemHeight := 80;
+  FRowItemHeight := 60;
+end;
+
+procedure TFLUIGridLayout.Resize;
+var
+  ColCount: Integer;
+  FrameWidth: Integer;
+  LeftSide: Integer;
+  i, Col, Row, ItemLeft, ItemTop: Integer;
+  Item: TControl;
+begin
+  inherited;
+
+  ColCount := GetColumnCount;
+  FrameWidth := ColCount * ItemWidth + (ColCount + 1) * Gap;
+  LeftSide := (Width - FrameWidth) div 2;
+
+  for i := 0 to ControlCount - 1 do
+    begin
+      Item := Controls[i];
+
+      Col := i mod ColCount;
+      Row := i div ColCount;
+      if (ColCount = 1) and (SingleColumnAsRow) then
+        begin
+          ItemLeft := 0;
+          ItemTop := Row * RowItemHeight;
+          Item.Width := Width;
+          Item.Height := RowItemHeight;
+        end
+      else
+        begin
+          ItemLeft := LeftSide + Col * ItemWidth + (Col + 1) * Gap;
+          ItemTop := 0 + Row * ItemHeight + (Row + 1) * Gap;
+          Item.Width := ItemWidth;
+          Item.Height := ItemHeight;
+        end;
+
+      Item.Top := ItemTop;
+      Item.Left := ItemLeft;
+    end;
+
+end;
+
+
+end.
+

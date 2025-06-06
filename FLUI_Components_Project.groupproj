@@ -1,0 +1,36 @@
+﻿<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+    <PropertyGroup>
+        <ProjectGuid>{9E863C76-B770-4110-A06A-B23B1C9192B0}</ProjectGuid>
+    </PropertyGroup>
+    <ItemGroup>
+        <Projects Include="FLUI_Components.dproj">
+            <Dependencies/>
+        </Projects>
+    </ItemGroup>
+    <ProjectExtensions>
+        <Borland.Personality>Default.Personality.12</Borland.Personality>
+        <Borland.ProjectType/>
+        <BorlandProject>
+            <Default.Personality/>
+        </BorlandProject>
+    </ProjectExtensions>
+    <Target Name="FLUI_Components">
+        <MSBuild Projects="FLUI_Components.dproj"/>
+    </Target>
+    <Target Name="FLUI_Components:Clean">
+        <MSBuild Projects="FLUI_Components.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="FLUI_Components:Make">
+        <MSBuild Projects="FLUI_Components.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="Build">
+        <CallTarget Targets="FLUI_Components"/>
+    </Target>
+    <Target Name="Clean">
+        <CallTarget Targets="FLUI_Components:Clean"/>
+    </Target>
+    <Target Name="Make">
+        <CallTarget Targets="FLUI_Components:Make"/>
+    </Target>
+    <Import Project="$(BDS)\Bin\CodeGear.Group.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Group.Targets')"/>
+</Project>

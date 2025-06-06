@@ -1,0 +1,695 @@
+unit FLUIButton;
+
+interface
+
+uses
+  System.SysUtils, System.Classes, System.UITypes, System.Math,
+  Winapi.Windows, Winapi.Messages,
+  Vcl.Controls, Vcl.Graphics, Vcl.StdCtrls, Vcl.Themes; // Vcl.Themes para TPenStyle e TColor
+
+type
+  // Declaração da classe TFLUIBorderSettings
+  TFLUIBorderSettings = class(TPersistent)
+  private
+    FOnChange: TNotifyEvent;
+
+    FRadius: Integer;
+    FBackgroundColor: TColor; // Cor principal de preenchimento do botão
+    FBorderColor: TColor;     // Cor da borda
+    FBorderThickness: Integer;
+    FBorderStyle: TPenStyle;
+
+    // Setters
+    procedure SetRadius(const Value: Integer);
+    procedure SetBackgroundColor(const Value: TColor);
+    procedure SetBorderColor(const Value: TColor);
+    procedure SetBorderThickness(const Value: Integer);
+    procedure SetBorderStyle(const Value: TPenStyle);
+  protected
+    procedure Changed; virtual;
+  public
+    constructor Create;
+    procedure Assign(Source: TPersistent); override;
+
+    property Radius: Integer read FRadius write SetRadius default 8;
+    property BackgroundColor: TColor read FBackgroundColor write SetBackgroundColor default clBtnFace;
+    property BorderColor: TColor read FBorderColor write SetBorderColor default clWindowText;
+    property BorderThickness: Integer read FBorderThickness write SetBorderThickness default 1;
+    property BorderStyle: TPenStyle read FBorderStyle write SetBorderStyle default psSolid;
+
+    property OnChange: TNotifyEvent read FOnChange write FOnChange;
+  end;
+
+  // Enumeração para os tipos de botão
+  TFLUIButtonType = (fbtContained, fbtOutline, fbtDark, fbtLight);
+
+  // Declaração da classe TFLUIButton
+  TFLUIButton = class(TCustomControl)
+  private
+    FCaption: string;
+    FOnClick: TNotifyEvent;
+    FButtonType: TFLUIButtonType;
+
+    FContainedFontColor: TColor;
+    FDarkColor: TColor;
+    FDarkFontColor: TColor;
+    FLightColor: TColor;
+    FLightFontColor: TColor;
+    FHoverColor: TColor;
+    FPressedColor: TColor;
+
+    FIsHovering: Boolean;
+    FIsPressed: Boolean;
+
+    FBorderSettings: TFLUIBorderSettings; // Objeto para configurações de borda/fundo
+
+    // Setters para propriedades publicadas
+    procedure SetCaption(const Value: string);
+    procedure SetButtonType(const Value: TFLUIButtonType);
+    procedure SetContainedFontColor(const Value: TColor);
+    procedure SetDarkColor(const Value: TColor);
+    procedure SetDarkFontColor(const Value: TColor);
+    procedure SetLightColor(const Value: TColor);
+    procedure SetLightFontColor(const Value: TColor);
+    procedure SetHoverColor(const Value: TColor);
+    procedure SetPressedColor(const Value: TColor);
+
+    // Getters/Setters para propriedades delegadas a FBorderSettings
+    function GetCornerRadius: Integer;
+    procedure SetCornerRadius(const Value: Integer);
+    function GetButtonFillColor: TColor;
+    procedure SetButtonFillColor(const Value: TColor);
+    function GetButtonBorderColor: TColor;
+    procedure SetButtonBorderColor(const Value: TColor);
+    function GetButtonBorderThickness: Integer;
+    procedure SetButtonBorderThickness(const Value: Integer);
+    function GetButtonDrawingBorderStyle: TPenStyle; // Nome diferente para evitar conflito
+    procedure SetButtonDrawingBorderStyle(const Value: TPenStyle);
+
+  protected
+    procedure Paint; override;
+    procedure MouseDown(Button: TMouseButton; Shift: TShiftState; X, Y: Integer); override;
+    procedure MouseUp(Button: TMouseButton; Shift: TShiftState; X, Y: Integer); override;
+    procedure CMMouseEnter(var Message: TMessage); message CM_MOUSEENTER;
+    procedure CMMouseLeave(var Message: TMessage); message CM_MOUSELEAVE;
+    procedure CMEnabledChanged(var Message: TMessage); message CM_ENABLEDCHANGED;
+
+
+    procedure BorderSettingsChanged(Sender: TObject);
+
+  public
+    constructor Create(AOwner: TComponent); override;
+    destructor Destroy; override;
+  published
+    property Caption: string read FCaption write SetCaption;
+    property ButtonType: TFLUIButtonType read FButtonType write SetButtonType default TFLUIButtonType.fbtContained;
+
+    // Novas propriedades publicadas delegando para FBorderSettings
+    property CornerRadius: Integer read GetCornerRadius write SetCornerRadius default 8;
+    property ButtonFillColor: TColor read GetButtonFillColor write SetButtonFillColor default clBtnFace;
+    property ButtonBorderColor: TColor read GetButtonBorderColor write SetButtonBorderColor default clWindowText;
+    property ButtonBorderThickness: Integer read GetButtonBorderThickness write SetButtonBorderThickness default 1;
+    property ButtonDrawingBorderStyle: TPenStyle read GetButtonDrawingBorderStyle write SetButtonDrawingBorderStyle default psSolid;
+
+    // Propriedades de cor de fonte e cores específicas de tipo (podem ser ajustadas para interagir com ButtonFillColor)
+    property ContainedFontColor: TColor read FContainedFontColor write SetContainedFontColor default clHighlightText;
+    property DarkColor: TColor read FDarkColor write SetDarkColor default clBlack;
+    property DarkFontColor: TColor read FDarkFontColor write SetDarkFontColor default clWhite;
+    property LightColor: TColor read FLightColor write SetLightColor default clBtnFace;
+    property LightFontColor: TColor read FLightFontColor write SetLightFontColor default clBtnText;
+    property HoverColor: TColor read FHoverColor write SetHoverColor default clNone; // clNone para usar lógica padrão
+    property PressedColor: TColor read FPressedColor write SetPressedColor default clNone; // clNone para usar lógica padrão
+
+    // Propriedades padrão
+    property Align;
+    property Anchors;
+    property Constraints;
+    property Enabled;
+    property Font;
+    property ParentFont;
+    property ParentShowHint;
+    property PopupMenu;
+    property ShowHint;
+    property Visible;
+    property OnClick: TNotifyEvent read FOnClick write FOnClick;
+
+    // Outras propriedades padrão que você pode querer republicar
+    property Action;
+    property HelpContext;
+    property Hint;
+    property ParentColor;
+    property TabOrder;
+    property TabStop default True;
+  end;
+
+procedure Register;
+
+implementation
+
+// --- Funções Auxiliares de Cor (coloque-as aqui ou em uma unit de utilidades) ---
+function DarkenColor(AColor: TColor; APercent: Byte): TColor;
+var
+  R, G, B: Byte;
+begin
+  R := GetRValue(ColorToRGB(AColor));
+  G := GetGValue(ColorToRGB(AColor));
+  B := GetBValue(ColorToRGB(AColor));
+  R := Max(0, R - MulDiv(R, APercent, 100));
+  G := Max(0, G - MulDiv(G, APercent, 100));
+  B := Max(0, B - MulDiv(B, APercent, 100));
+  Result := TColor(RGB(R, G, B));
+end;
+
+function LightenColor(AColor: TColor; APercent: Byte): TColor;
+var
+  R, G, B: Byte;
+begin
+  R := GetRValue(ColorToRGB(AColor));
+  G := GetGValue(ColorToRGB(AColor));
+  B := GetBValue(ColorToRGB(AColor));
+  R := Min(255, R + MulDiv(255 - R, APercent, 100));
+  G := Min(255, G + MulDiv(255 - G, APercent, 100));
+  B := Min(255, B + MulDiv(255 - B, APercent, 100));
+  Result := TColor(RGB(R, G, B));
+end;
+
+// --- Implementação de TFLUIBorderSettings ---
+constructor TFLUIBorderSettings.Create;
+begin
+  inherited Create;
+  FRadius := 8;
+  FBackgroundColor := clBtnFace;
+  FBorderColor := clWindowText;
+  FBorderThickness := 1;
+  FBorderStyle := psSolid;
+end;
+
+procedure TFLUIBorderSettings.Assign(Source: TPersistent);
+begin
+  if Source is TFLUIBorderSettings then
+  begin
+    Self.FRadius := TFLUIBorderSettings(Source).FRadius;
+    Self.FBackgroundColor := TFLUIBorderSettings(Source).FBackgroundColor;
+    Self.FBorderColor := TFLUIBorderSettings(Source).FBorderColor;
+    Self.FBorderThickness := TFLUIBorderSettings(Source).FBorderThickness;
+    Self.FBorderStyle := TFLUIBorderSettings(Source).FBorderStyle;
+    Changed;
+  end
+  else
+    inherited Assign(Source);
+end;
+
+procedure TFLUIBorderSettings.Changed;
+begin
+  if Assigned(FOnChange) then
+    FOnChange(Self);
+end;
+
+procedure TFLUIBorderSettings.SetRadius(const Value: Integer);
+begin
+  if FRadius <> Value then
+  begin
+    FRadius := Max(0, Value);
+    Changed;
+  end;
+end;
+
+procedure TFLUIBorderSettings.SetBackgroundColor(const Value: TColor);
+begin
+  if FBackgroundColor <> Value then
+  begin
+    FBackgroundColor := Value;
+    Changed;
+  end;
+end;
+
+procedure TFLUIBorderSettings.SetBorderColor(const Value: TColor);
+begin
+  if FBorderColor <> Value then
+  begin
+    FBorderColor := Value;
+    Changed;
+  end;
+end;
+
+procedure TFLUIBorderSettings.SetBorderThickness(const Value: Integer);
+begin
+  if FBorderThickness <> Value then
+  begin
+    FBorderThickness := Max(0, Value);
+    Changed;
+  end;
+end;
+
+procedure TFLUIBorderSettings.SetBorderStyle(const Value: TPenStyle);
+begin
+  if FBorderStyle <> Value then
+  begin
+    FBorderStyle := Value;
+    Changed;
+  end;
+end;
+
+// --- Implementação de TFLUIButton ---
+constructor TFLUIButton.Create(AOwner: TComponent);
+begin
+  inherited Create(AOwner);
+  ControlStyle := ControlStyle + [csOpaque, csClickEvents, csCaptureMouse,
+                                  csReplicatable,  csDoubleClicks];
+  Width := 100;
+  Height := 30;
+  TabStop := True; // Para poder receber foco
+
+  FCaption := Name;
+
+  FBorderSettings := TFLUIBorderSettings.Create;
+  FBorderSettings.OnChange := BorderSettingsChanged;
+
+  FButtonType := TFLUIButtonType.fbtContained;
+  FContainedFontColor := clWindowText; // Cor de fonte padrão para Contained
+  FDarkColor := clBlack;
+  FDarkFontColor := clWhite;
+  FLightColor := clInfoBk; // Um cinza bem claro, quase branco
+  FLightFontColor := clWindowText;
+  FHoverColor := clNone;   // Usará lógica de clarear/escurecer
+  FPressedColor := clNone; // Usará lógica de clarear/escurecer
+
+  FIsHovering := False;
+  FIsPressed := False;
+end;
+
+destructor TFLUIButton.Destroy;
+begin
+  if Assigned(FBorderSettings) then // Verifica se foi atribuído
+  begin
+    FBorderSettings.OnChange := nil;
+    FBorderSettings.Free;
+    FBorderSettings := nil; // Boa prática
+  end;
+  inherited Destroy;
+end;
+
+procedure TFLUIButton.BorderSettingsChanged(Sender: TObject);
+begin
+  Invalidate;
+end;
+
+// Getters e Setters para propriedades delegadas
+function TFLUIButton.GetCornerRadius: Integer;
+begin
+  Result := FBorderSettings.Radius;
+end;
+
+procedure TFLUIButton.SetCornerRadius(const Value: Integer);
+begin
+  FBorderSettings.Radius := Value;
+end;
+
+function TFLUIButton.GetButtonFillColor: TColor;
+begin
+  Result := FBorderSettings.BackgroundColor;
+end;
+
+procedure TFLUIButton.SetButtonFillColor(const Value: TColor);
+begin
+  FBorderSettings.BackgroundColor := Value;
+end;
+
+function TFLUIButton.GetButtonBorderColor: TColor;
+begin
+  Result := FBorderSettings.BorderColor;
+end;
+
+procedure TFLUIButton.SetButtonBorderColor(const Value: TColor);
+begin
+  FBorderSettings.BorderColor := Value;
+end;
+
+function TFLUIButton.GetButtonBorderThickness: Integer;
+begin
+  Result := FBorderSettings.BorderThickness;
+end;
+
+procedure TFLUIButton.SetButtonBorderThickness(const Value: Integer);
+begin
+  FBorderSettings.BorderThickness := Value;
+end;
+
+function TFLUIButton.GetButtonDrawingBorderStyle: TPenStyle;
+begin
+  Result := FBorderSettings.BorderStyle;
+end;
+
+procedure TFLUIButton.SetButtonDrawingBorderStyle(const Value: TPenStyle);
+begin
+  FBorderSettings.BorderStyle := Value;
+end;
+
+// Setters para propriedades diretas do TFLUIButton
+procedure TFLUIButton.SetCaption(const Value: string);
+begin
+  if FCaption <> Value then
+  begin
+    FCaption := Value;
+    Invalidate;
+  end;
+end;
+
+procedure TFLUIButton.SetButtonType(const Value: TFLUIButtonType);
+begin
+  if FButtonType <> Value then
+  begin
+    FButtonType := Value;
+    Invalidate;
+  end;
+end;
+
+procedure TFLUIButton.SetContainedFontColor(const Value: TColor);
+begin
+  if FContainedFontColor <> Value then
+  begin
+    FContainedFontColor := Value;
+    Invalidate;
+  end;
+end;
+
+procedure TFLUIButton.SetDarkColor(const Value: TColor);
+begin
+  if FDarkColor <> Value then
+  begin
+    FDarkColor := Value;
+    Invalidate;
+  end;
+end;
+
+procedure TFLUIButton.SetDarkFontColor(const Value: TColor);
+begin
+  if FDarkFontColor <> Value then
+  begin
+    FDarkFontColor := Value;
+    Invalidate;
+  end;
+end;
+
+procedure TFLUIButton.SetLightColor(const Value: TColor);
+begin
+  if FLightColor <> Value then
+  begin
+    FLightColor := Value;
+    Invalidate;
+  end;
+end;
+
+procedure TFLUIButton.SetLightFontColor(const Value: TColor);
+begin
+  if FLightFontColor <> Value then
+  begin
+    FLightFontColor := Value;
+    Invalidate;
+  end;
+end;
+
+procedure TFLUIButton.SetHoverColor(const Value: TColor);
+begin
+  if FHoverColor <> Value then
+  begin
+    FHoverColor := Value;
+    if FIsHovering then Invalidate;
+  end;
+end;
+
+procedure TFLUIButton.SetPressedColor(const Value: TColor);
+begin
+  if FPressedColor <> Value then
+  begin
+    FPressedColor := Value;
+    if FIsPressed then Invalidate;
+  end;
+end;
+
+// Manipuladores de eventos do mouse e mensagens
+procedure TFLUIButton.CMMouseEnter(var Message: TMessage);
+begin
+  inherited;
+  if not (csDesigning in ComponentState) then
+  begin
+    FIsHovering := True;
+    Invalidate;
+  end;
+end;
+
+procedure TFLUIButton.CMMouseLeave(var Message: TMessage);
+begin
+  inherited;
+  if not (csDesigning in ComponentState) then
+  begin
+    FIsHovering := False;
+    if FIsPressed then // Se sair com o mouse pressionado, resetar estado Pressionado visualmente
+    begin
+      FIsPressed := False;
+    end;
+    Invalidate;
+  end;
+end;
+
+procedure TFLUIButton.CMEnabledChanged(var Message: TMessage);
+begin
+  inherited;
+  Invalidate; // Redesenhar quando o estado Enabled mudar
+end;
+
+
+procedure TFLUIButton.MouseDown(Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
+begin
+  inherited;
+  if (Button = mbLeft) and Enabled and not (csDesigning in ComponentState) then
+  begin
+    FIsPressed := True;
+    Invalidate;
+  end;
+end;
+
+procedure TFLUIButton.MouseUp(Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
+var
+  WasPressed: Boolean;
+begin
+  WasPressed := FIsPressed; // Guarda o estado antes de resetar
+  if FIsPressed then
+  begin
+    FIsPressed := False;
+    Invalidate; // Precisa redesenhar para o estado normal/hover
+  end;
+  inherited; // Chama o inherited MouseUp
+
+  if WasPressed and Enabled and (Button = mbLeft) and PtInRect(ClientRect, Point(X,Y)) then
+  begin
+    if not (csDesigning in ComponentState) then
+    begin
+       Click; // Dispara o evento OnClick
+    end;
+  end;
+end;
+
+// Método Paint principal
+procedure TFLUIButton.Paint;
+var
+  LRect: TRect;
+  LCurrentFillColor, LCurrentBorderColor, LCurrentTextColor: TColor;
+  LCurrentBorderThickness: Integer;
+  LCurrentBorderStyle: TPenStyle;
+  LCurrentRadius: Integer;
+  TextFlags: Cardinal;
+  OriginalPen: TPen;
+  OriginalBrush: TBrush;
+begin
+  OriginalPen := TPen.Create;
+  OriginalBrush := TBrush.Create;
+  try
+    OriginalPen.Assign(Canvas.Pen);
+    OriginalBrush.Assign(Canvas.Brush);
+
+    Canvas.Font.Assign(Self.Font);
+    LRect := ClientRect;
+
+    // 1. Definir configurações base a partir de FBorderSettings
+    LCurrentRadius := FBorderSettings.Radius;
+    LCurrentFillColor := FBorderSettings.BackgroundColor;
+    LCurrentBorderColor := FBorderSettings.BorderColor;
+    LCurrentBorderThickness := FBorderSettings.BorderThickness;
+    LCurrentBorderStyle := FBorderSettings.BorderStyle;
+    LCurrentTextColor := Self.Font.Color; // Cor de texto base
+
+    // 2. Ajustar cores e estilos com base no estado (Enabled) e ButtonType
+    if not Enabled then
+    begin
+      LCurrentFillColor := clBtnShadow;
+      LCurrentTextColor := clGrayText;
+      LCurrentBorderColor := clDkGray;
+      // Opcional: LCurrentBorderThickness := 0 ou 1;
+    end
+    else // Enabled
+    begin
+      case FButtonType of
+        fbtContained:
+          begin
+            // LCurrentFillColor já é FBorderSettings.BackgroundColor
+            LCurrentTextColor := FContainedFontColor;
+            // A borda pode usar FBorderSettings.BorderColor ou ser da cor do fundo
+            // if LCurrentBorderThickness > 0 then LCurrentBorderColor := FBorderSettings.BorderColor;
+          end;
+        fbtOutline:
+          begin
+            LCurrentFillColor := clNone; // Sem preenchimento
+            LCurrentTextColor := FBorderSettings.BorderColor; // Texto da cor da borda
+            LCurrentBorderColor := FBorderSettings.BorderColor;
+            LCurrentBorderThickness := Max(1, FBorderSettings.BorderThickness); // Outline deve ter borda
+            LCurrentBorderStyle := FBorderSettings.BorderStyle;
+          end;
+        fbtDark:
+          begin
+            LCurrentFillColor := FDarkColor;
+            LCurrentTextColor := FDarkFontColor;
+            LCurrentBorderColor := FDarkColor; // Borda da mesma cor para Dark
+            if LCurrentBorderThickness = 0 then LCurrentBorderThickness := 1; // Garante "borda"
+          end;
+        fbtLight:
+          begin
+            LCurrentFillColor := FLightColor;
+            LCurrentTextColor := FLightFontColor;
+            LCurrentBorderColor := FLightColor; // Borda da mesma cor para Light
+            if LCurrentBorderThickness = 0 then LCurrentBorderThickness := 1; // Garante "borda"
+          end;
+      end;
+
+      // 3. Aplicar modificações de Hover e Pressed
+      var TempFillColor: TColor;
+      var TempBorderColor: TColor;
+      TempFillColor := LCurrentFillColor;
+      TempBorderColor := LCurrentBorderColor;
+
+      if FIsPressed and not (csDesigning in ComponentState) then
+      begin
+        if FPressedColor <> clNone then
+          TempFillColor := FPressedColor
+        else if LCurrentFillColor <> clNone then // Não escurece se for transparente
+          TempFillColor := DarkenColor(LCurrentFillColor, 20);
+
+        if FButtonType = fbtOutline then // Em outline, o "pressionado" também escurece a borda
+          TempBorderColor := DarkenColor(LCurrentBorderColor, 20);
+      end
+      else if FIsHovering and not (csDesigning in ComponentState) then
+      begin
+        if FHoverColor <> clNone then
+          TempFillColor := FHoverColor
+        else if LCurrentFillColor <> clNone then
+          TempFillColor := LightenColor(LCurrentFillColor, 15);
+
+        if FButtonType = fbtOutline then // Em outline, o "hover" também clareia a borda
+          TempBorderColor := LightenColor(LCurrentBorderColor, 15);
+      end;
+      LCurrentFillColor := TempFillColor;
+      LCurrentBorderColor := TempBorderColor;
+
+      // Se o tipo for Outline, a cor do texto acompanha a cor da borda no hover/press
+      if FButtonType = fbtOutline and (FIsHovering or FIsPressed) and not (csDesigning in ComponentState) then
+      begin
+          LCurrentTextColor := LCurrentBorderColor;
+      end;
+
+    end; // Fim do if Enabled
+
+    // 4. Desenhar
+    // Preenchimento
+    if LCurrentFillColor <> clNone then
+    begin
+      Canvas.Brush.Color := LCurrentFillColor;
+      Canvas.Brush.Style := bsSolid;
+    end
+    else
+    begin
+      Canvas.Brush.Style := bsClear;
+    end;
+
+    // Borda
+    if LCurrentBorderThickness > 0 then
+    begin
+      Canvas.Pen.Color := LCurrentBorderColor;
+      Canvas.Pen.Width := LCurrentBorderThickness;
+      Canvas.Pen.Style := LCurrentBorderStyle;
+    end
+    else
+    begin
+      // Se não houver espessura de borda, mas o tipo é outline,
+      // e FillColor é clNone, desenhamos uma borda fina da cor da borda definida
+      // para que o botão não desapareça completamente.
+      if (FButtonType = fbtOutline) and (LCurrentFillColor = clNone) then
+      begin
+        Canvas.Pen.Color := LCurrentBorderColor;
+        Canvas.Pen.Width := 1; // Mínimo para ser visível
+        Canvas.Pen.Style := psSolid; // Garante que seja sólida
+      end
+      else
+      begin
+        Canvas.Pen.Style := psClear; // Sem borda visível
+      end;
+    end;
+
+    // Desenhar a forma
+    if LCurrentRadius > 0 then
+    begin
+      Canvas.RoundRect(LRect.Left, LRect.Top, LRect.Right, LRect.Bottom, LCurrentRadius, LCurrentRadius);
+    end
+    else
+    begin
+      Canvas.Rectangle(LRect.Left, LRect.Top, LRect.Right, LRect.Bottom);
+    end;
+
+    // Texto
+    Canvas.Brush.Style := bsClear; // Importante para o texto
+    Canvas.Font.Color := LCurrentTextColor;
+    TextFlags := DT_CENTER or DT_VCENTER or DT_SINGLELINE or DT_NOCLIP;
+    DrawText(Canvas.Handle, PChar(FCaption), Length(FCaption), LRect, TextFlags);
+
+    // Foco
+    if Focused and Enabled and not (csDesigning in ComponentState) then
+    begin
+      // Ajusta o retângulo de foco para dentro da borda principal
+      var FocusDrawRect := LRect;
+      if LCurrentBorderThickness > 0 then // Só ajusta se houver borda
+          InflateRect(FocusDrawRect, - (LCurrentBorderThickness + 1), - (LCurrentBorderThickness + 1))
+      else // Se não houver borda, infla um pouco para não sobrepor o texto
+          InflateRect(FocusDrawRect, -2, -2);
+
+      if (FocusDrawRect.Right > FocusDrawRect.Left) and (FocusDrawRect.Bottom > FocusDrawRect.Top) then
+      begin
+        Canvas.Pen.Color := clGrayText; // Cor para o foco
+        Canvas.Pen.Style := psDot;
+        Canvas.Pen.Width := 1;
+        Canvas.Brush.Style := bsClear;
+        if LCurrentRadius > 0 then // Desenha foco arredondado se o botão for arredondado
+        begin
+          // Tenta manter o raio do foco um pouco menor
+          var FocusRadius: Integer;
+          FocusRadius := Max(0, LCurrentRadius - (LCurrentBorderThickness + 1));
+          Canvas.RoundRect(FocusDrawRect.Left, FocusDrawRect.Top, FocusDrawRect.Right, FocusDrawRect.Bottom, FocusRadius, FocusRadius);
+        end
+        else
+          Canvas.FrameRect(FocusDrawRect); // Canvas.DrawFocusRect(FocusDrawRect) é outra opção
+      end;
+    end;
+
+  finally
+    Canvas.Pen.Assign(OriginalPen);
+    Canvas.Brush.Assign(OriginalBrush);
+    OriginalPen.Free;
+    OriginalBrush.Free;
+  end;
+end;
+
+// Procedimento de Registro
+procedure Register;
+begin
+  RegisterComponents('FLUI', [TFLUIButton]);
+end;
+
+end.

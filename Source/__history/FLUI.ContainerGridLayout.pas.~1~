@@ -1,0 +1,50 @@
+unit FLUI.ContainerGridLayout;
+
+interface
+
+uses
+  FLUI.Classes,
+
+  System.Classes, System.Types,
+  VCL.Controls, VCL.Graphics, VCL.ExtCtrls;
+
+type
+  TFLUIContainerGridLayout = class(TPanel)
+    private
+    FGridLayout: TFLUIGridLayout;
+    function GetColumnCount: Integer;
+    procedure Resize;
+    procedure SetGridLayout(const Value: TFLUIGridLayout);
+    public
+      constructor Create;
+    published
+      property GridLayout : TFLUIGridLayout read FGridLayout write SetGridLayout;
+    end;
+
+implementation
+
+{ TFLUIContainerGridLayout }
+
+constructor TFLUIContainerGridLayout.Create(aOwner: TComponent);
+begin
+  inherited;
+
+end;
+
+function TFLUIContainerGridLayout.GetColumnCount: Integer;
+begin
+
+end;
+
+procedure TFLUIContainerGridLayout.Resize;
+begin
+  inherited;
+
+end;
+
+procedure TFLUIContainerGridLayout.SetGridLayout(const Value: TFLUIGridLayout);
+begin
+  FGridLayout := Value;
+end;
+
+end.

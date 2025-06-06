@@ -1,0 +1,142 @@
+unit FLUI.ContainerGridLayout;
+
+interface
+
+uses
+  FLUI.Classes,
+  System.Classes, System.SysUtils, System.Math,
+  Vcl.Controls, Vcl.ExtCtrls;
+
+type
+  TFLUIContainerGridLayout = class(TCustomPanel) // Herda de TCustomPanel
+  private
+    FGridLayout: TFLUIGridLayoutSettings; // Usa a classe de configurações
+    procedure SetGridLayout(const Value: TFLUIGridLayoutSettings);
+    procedure LayoutSettingsChanged(Sender: TObject);
+  protected
+    procedure Resize; override;
+    procedure Notification(AComponent: TComponent; Operation: TOperation); override;
+  public
+    constructor Create(AOwner: TComponent); override;
+    destructor Destroy; override;
+    procedure UpdateLayout;
+  published
+    property GridLayout: TFLUIGridLayoutSettings read FGridLayout write SetGridLayout;
+    // Publica outras propriedades de TPanel que você queira, como Align, Anchors, etc.
+    property Align;
+    property Anchors;
+    property BevelOuter;
+    property Constraints;
+    property Padding;
+    property ParentColor;
+    property ParentBackground;
+    property Visible;
+  end;
+
+procedure Register;
+
+implementation
+
+{ TFLUIContainerGridLayout }
+
+constructor TFLUIContainerGridLayout.Create(AOwner: TComponent);
+begin
+  inherited Create(AOwner);
+  // Cria a instância da classe de configurações
+  FGridLayout := TFLUIGridLayoutSettings.Create;
+  // Conecta o evento OnChange para saber quando atualizar o layout
+  FGridLayout.OnChange := LayoutSettingsChanged;
+end;
+
+destructor TFLUIContainerGridLayout.Destroy;
+begin
+  FGridLayout.Free; // Libera a memória
+  inherited Destroy;
+end;
+
+procedure TFLUIContainerGridLayout.LayoutSettingsChanged(Sender: TObject);
+begin
+  UpdateLayout; // Atualiza o layout quando uma configuração muda
+end;
+
+procedure TFLUIContainerGridLayout.Resize;
+begin
+  inherited;
+  UpdateLayout; // Atualiza o layout quando o tamanho do container muda
+end;
+
+procedure TFLUIContainerGridLayout.Notification(AComponent: TComponent; Operation: TOperation);
+begin
+  inherited;
+  // Atualiza o layout se um controle for adicionado ou removido
+  if (Operation = opInsert) or (Operation = opRemove) then
+  begin
+    if AComponent.Owner = Self then // Garante que é um filho direto
+      UpdateLayout;
+  end;
+end;
+
+procedure TFLUIContainerGridLayout.SetGridLayout(const Value: TFLUIGridLayoutSettings);
+begin
+  // Usa Assign para copiar os valores, não a referência
+  FGridLayout.Assign(Value);
+end;
+
+procedure TFLUIContainerGridLayout.UpdateLayout;
+var
+  I, Col, Row, VisibleControlIndex, ColumnCount, ItemW, ItemH: Integer;
+  X, Y: Integer;
+  Child: TControl;
+begin
+  if (csLoading in ComponentState) or (FGridLayout = nil) then
+    Exit; // Não faz nada durante o carregamento do formulário
+
+  // 1. Determinar o número de colunas
+  ColumnCount := Trunc((Width - Padding.Left - Padding.Right + FGridLayout.Gap) / (FGridLayout.ItemWidth + FGridLayout.Gap));
+  if ColumnCount > FGridLayout.MaxColumns then
+    ColumnCount := FGridLayout.MaxColumns;
+  if ColumnCount < 1 then
+    ColumnCount := 1;
+
+  // 2. Determinar a largura do item
+  if ColumnCount = 1 then
+    ItemW := Width - Padding.Left - Padding.Right
+  else
+    ItemW := Trunc((Width - Padding.Left - Padding.Right - (ColumnCount - 1) * FGridLayout.Gap) / ColumnCount);
+
+  // 3. Posicionar os controles filhos
+  VisibleControlIndex := -1;
+  for I := 0 to ControlCount - 1 do
+  begin
+    Child := Controls[I];
+    // Considera apenas controles visíveis para o layout
+    if (Child is TWinControl) and Child.Visible then
+    begin
+      Inc(VisibleControlIndex);
+
+      // Calcular linha e coluna
+      Col := VisibleControlIndex mod ColumnCount;
+      Row := VisibleControlIndex div ColumnCount;
+
+      // Definir altura do item
+      if (ColumnCount = 1) and FGridLayout.SingleColumnAsRow then
+        ItemH := FGridLayout.RowItemHeight
+      else
+        ItemH := FGridLayout.ItemHeight;
+
+      // Calcular posição X e Y
+      X := Padding.Left + Col * (ItemW + FGridLayout.Gap);
+      Y := Padding.Top + Row * (ItemH + FGridLayout.Gap);
+
+      // Aplicar o novo posicionamento e tamanho
+      Child.SetBounds(X, Y, ItemW, ItemH);
+    end;
+  end;
+end;
+
+procedure Register;
+begin
+  RegisterComponents('FLUI', [TFLUIContainerGridLayout]);
+end;
+
+end.
