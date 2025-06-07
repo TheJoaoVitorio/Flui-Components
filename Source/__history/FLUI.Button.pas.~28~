@@ -368,6 +368,7 @@ begin
   OuterPath.Free;
 
   InnerRect := AOuterRect;
+  // CORREÇÃO APLICADA AQUI:
   InnerRect.X := InnerRect.X + ABorderThickness;
   InnerRect.Y := InnerRect.Y + ABorderThickness;
   InnerRect.Width := InnerRect.Width - (2 * ABorderThickness);
@@ -638,21 +639,52 @@ begin
       end
       else
       begin
-        LGPBorderPath := CreateGPRoundedRectBorderPath(LGPRectClient, LCurrentRadiusEffective, LCurrentBorderThickness.ToSingle);
+        var BorderSolidDrawRect : TGPRectF;
+        BorderSolidDrawRect := MakeRect(LGPRectClient.X + PathInset, LGPRectClient.Y + PathInset,
+                                   LGPRectClient.Width - 2 * PathInset, LGPRectClient.Height - 2 * PathInset);
+        if BorderSolidDrawRect.Width <0 then BorderSolidDrawRect.Width := 0;
+        if BorderSolidDrawRect.Height <0 then BorderSolidDrawRect.Height := 0;
+
+        var RadiusForSolidBorderPath : Single;
+        RadiusForSolidBorderPath := Max(0, LCurrentRadiusEffective - PathInset);
+
+        LGPBorderPath := CreateGPRoundedRectPath(BorderSolidDrawRect, RadiusForSolidBorderPath);
         try
-          if LGPBorderPath.GetPointCount > 0 then
-          begin
-            LGPBrush := TGPSolidBrush.Create(ColorToARGB(LCurrentBorderColorSolid));
-            try
-              LGPGraphics.FillPath(LGPBrush, LGPBorderPath);
-            finally
-              LGPBrush.Free;
+          LGPPen := TGPPen.Create(ColorToARGB(LCurrentBorderColorSolid), LCurrentBorderThickness);
+          try
+            case LCurrentBorderStyle of
+              psDash: LGPPen.SetDashStyle(DashStyleDash);
+              psDot: LGPPen.SetDashStyle(DashStyleDot);
+              psDashDot: LGPPen.SetDashStyle(DashStyleDashDot);
+              psDashDotDot: LGPPen.SetDashStyle(DashStyleDashDotDot);
+            else
+              LGPPen.SetDashStyle(DashStyleSolid);
             end;
+            if LGPBorderPath.GetPointCount > 0 then
+                LGPGraphics.DrawPath(LGPPen, LGPBorderPath);
+          finally
+            LGPPen.Free;
           end;
         finally
           LGPBorderPath.Free;
         end;
       end;
+    end
+    else if (LCurrentButtonType = fbtOutline) and (LCurrentFillColor = clNone) and (LCurrentBorderThickness = 0) then
+    begin
+        LGPBorderPath := CreateGPRoundedRectPath(LGPRectClient, LCurrentRadiusEffective);
+        try
+            LGPPen := TGPPen.Create(ColorToARGB(LCurrentBorderColorSolid), 1.0);
+            try
+                LGPPen.SetDashStyle(DashStyleSolid);
+                 if LGPBorderPath.GetPointCount > 0 then
+                    LGPGraphics.DrawPath(LGPPen, LGPBorderPath);
+            finally
+                LGPPen.Free;
+            end;
+        finally
+            LGPBorderPath.Free;
+        end;
     end;
 
     Canvas.Brush.Style := bsClear;
@@ -706,5 +738,4 @@ end;
 initialization
 finalization
 end.
-
 

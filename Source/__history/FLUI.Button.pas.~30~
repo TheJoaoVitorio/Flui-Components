@@ -637,7 +637,7 @@ begin
         end;
       end
       else
-      begin
+      begin // Start of new logic for solid borders
         LGPBorderPath := CreateGPRoundedRectBorderPath(LGPRectClient, LCurrentRadiusEffective, LCurrentBorderThickness.ToSingle);
         try
           if LGPBorderPath.GetPointCount > 0 then
@@ -652,7 +652,7 @@ begin
         finally
           LGPBorderPath.Free;
         end;
-      end;
+      end; // End of new logic for solid borders
     end;
 
     Canvas.Brush.Style := bsClear;
