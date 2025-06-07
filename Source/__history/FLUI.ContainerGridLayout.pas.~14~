@@ -99,7 +99,6 @@ begin
       if (Controls[I] is TWinControl) and Controls[I].Visible then
         VisibleControls.Add(Controls[I]);
 
-
     VisibleControlCount := VisibleControls.Count;
     if VisibleControlCount = 0 then Exit;
 

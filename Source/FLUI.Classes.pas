@@ -91,6 +91,8 @@ type
     property OnChange: TNotifyEvent read FOnChange write FOnChange;
   end;
 
+  TFLUIGridAlign = (flaLeft, flaCenter, flaRight, flaSpaceBetween, flaSpaceAround, flaSpaceEvenly);
+
   TFLUIGridLayoutSettings = class(TPersistent)
     private
       FOnChange: TNotifyEvent;
@@ -100,6 +102,7 @@ type
       FItemWidth: Integer;
       FItemHeight: Integer;
       FRowItemHeight: Integer;
+      FAlignment: TFLUIGridAlign;
 
       procedure SetMaxColumns(const Value: Integer);
       procedure SetGap(const Value: Integer);
@@ -107,12 +110,14 @@ type
       procedure SetItemWidth(const Value: Integer);
       procedure SetItemHeight(const Value: Integer);
       procedure SetRowItemHeight(const Value: Integer);
+      procedure SetAlignment(const Value: TFLUIGridAlign);
     protected
       procedure Changed; virtual;
     public
       constructor Create;
       procedure Assign(Source: TPersistent); override;
     published
+      property Alignment: TFLUIGridAlign read FAlignment write SetAlignment default TFLUIGridAlign.flaLeft;
       property MaxColumns: Integer read FMaxColumns write SetMaxColumns default 5;
       property Gap: Integer read FGap write SetGap default 18;
       property SingleColumnAsRow: Boolean read FSingleColumnAsRow write SetSingleColumnAsRow default true;
@@ -348,6 +353,7 @@ end;
 constructor TFLUIGridLayoutSettings.Create;
 begin
   inherited Create;
+  FAlignment := TFLUIGridAlign.flaLeft;
   FMaxColumns := 5;
   FGap := 18;
   FSingleColumnAsRow := True;
@@ -360,6 +366,7 @@ procedure TFLUIGridLayoutSettings.Assign(Source: TPersistent);
 begin
   if Source is TFLUIGridLayoutSettings then
   begin
+    Self.FAlignment := TFLUIGridLayoutSettings(Source).FAlignment;
     Self.FMaxColumns := TFLUIGridLayoutSettings(Source).FMaxColumns;
     Self.FGap := TFLUIGridLayoutSettings(Source).FGap;
     Self.FSingleColumnAsRow := TFLUIGridLayoutSettings(Source).FSingleColumnAsRow;
@@ -376,6 +383,15 @@ procedure TFLUIGridLayoutSettings.Changed;
 begin
   if Assigned(FOnChange) then
     FOnChange(Self);
+end;
+
+procedure TFLUIGridLayoutSettings.SetAlignment(const Value: TFLUIGridAlign);
+begin
+  if FAlignment <> Value then
+  begin
+    FAlignment := Value;
+    Changed;
+  end;
 end;
 
 procedure TFLUIGridLayoutSettings.SetMaxColumns(const Value: Integer);

@@ -4,7 +4,8 @@ interface
 
 uses
   System.Math, System.SysUtils, System.Classes,
-  Vcl.Graphics;
+  Vcl.Graphics, System.Types,
+  VCL.Controls, VCL.ExtCtrls;
 
 type
   TFLUIButtonType = (fbtContained, fbtOutline, fbtDark, fbtLight, fbtGradient);
@@ -90,6 +91,41 @@ type
     property OnChange: TNotifyEvent read FOnChange write FOnChange;
   end;
 
+  TFLUIGridAlign = (flaLeft, flaCenter, flaRight, flaSpaceBetween, flaSpaceAround, flaSpaceEvenly);
+
+  TFLUIGridLayoutSettings = class(TPersistent)
+    private
+      FOnChange: TNotifyEvent;
+      FMaxColumns: Integer;
+      FGap: Integer;
+      FSingleColumnAsRow: Boolean;
+      FItemWidth: Integer;
+      FItemHeight: Integer;
+      FRowItemHeight: Integer;
+
+      procedure SetMaxColumns(const Value: Integer);
+      procedure SetGap(const Value: Integer);
+      procedure SetSingleColumnAsRow(const Value: Boolean);
+      procedure SetItemWidth(const Value: Integer);
+      procedure SetItemHeight(const Value: Integer);
+      procedure SetRowItemHeight(const Value: Integer);
+    protected
+      procedure Changed; virtual;
+    public
+      constructor Create;
+      procedure Assign(Source: TPersistent); override;
+    published
+      property MaxColumns: Integer read FMaxColumns write SetMaxColumns default 5;
+      property Gap: Integer read FGap write SetGap default 18;
+      property SingleColumnAsRow: Boolean read FSingleColumnAsRow write SetSingleColumnAsRow default true;
+      property ItemWidth: Integer read FItemWidth write SetItemWidth default 250;
+      property ItemHeight: Integer read FItemHeight write SetItemHeight default 80;
+      property RowItemHeight: Integer read FRowItemHeight write SetRowItemHeight default 60;
+      property OnChange: TNotifyEvent read FOnChange write FOnChange;
+    end;
+
+
+
 implementation
 
 { TFLUIGradientColor }
@@ -159,7 +195,7 @@ begin
   FBorderStyle := psSolid;
   FUseGradientBorder := False;
   FGradient := TFLUIGradientColor.Create;
-  FGradient.OnChange := Self.GradientChanged; // Conecta o evento
+  FGradient.OnChange := Self.GradientChanged;
 end;
 
 destructor TFLUIBorderSettings.Destroy;
@@ -192,7 +228,7 @@ end;
 
 procedure TFLUIBorderSettings.GradientChanged(Sender: TObject);
 begin
-  Changed; // Repassa a notificação se o gradiente da borda mudar
+  Changed;
 end;
 
 procedure TFLUIBorderSettings.SetRadius(const Value: Integer);
@@ -252,7 +288,7 @@ begin
   inherited Create;
   FFillColor := clBtnFace;
   FGradient := TFLUIGradientColor.Create;
-  FGradient.OnChange := Self.FillGradientChanged; // Nome do handler atualizado
+  FGradient.OnChange := Self.FillGradientChanged;
   FButtonType := TFLUIButtonType.fbtContained;
 end;
 
@@ -281,7 +317,7 @@ begin
     FOnChange(Self);
 end;
 
-procedure TFLUIButtonColorSettings.FillGradientChanged(Sender: TObject); // Renomeado
+procedure TFLUIButtonColorSettings.FillGradientChanged(Sender: TObject);
 begin
   Changed;
 end;
@@ -297,7 +333,7 @@ end;
 
 procedure TFLUIButtonColorSettings.SetGradient(const Value: TFLUIGradientColor);
 begin
-  FGradient.Assign(Value); // Este é o gradiente de preenchimento
+  FGradient.Assign(Value);
 end;
 
 procedure TFLUIButtonColorSettings.SetButtonType(const Value: TFLUIButtonType);
@@ -308,6 +344,96 @@ begin
     Changed;
   end;
 end;
+
+{ TFLUIGridLayout }
+
+constructor TFLUIGridLayoutSettings.Create;
+begin
+  inherited Create;
+  FMaxColumns := 5;
+  FGap := 18;
+  FSingleColumnAsRow := True;
+  FItemWidth := 250;
+  FItemHeight := 80;
+  FRowItemHeight := 60;
+end;
+
+procedure TFLUIGridLayoutSettings.Assign(Source: TPersistent);
+begin
+  if Source is TFLUIGridLayoutSettings then
+  begin
+    Self.FMaxColumns := TFLUIGridLayoutSettings(Source).FMaxColumns;
+    Self.FGap := TFLUIGridLayoutSettings(Source).FGap;
+    Self.FSingleColumnAsRow := TFLUIGridLayoutSettings(Source).FSingleColumnAsRow;
+    Self.FItemWidth := TFLUIGridLayoutSettings(Source).FItemWidth;
+    Self.FItemHeight := TFLUIGridLayoutSettings(Source).FItemHeight;
+    Self.FRowItemHeight := TFLUIGridLayoutSettings(Source).FRowItemHeight;
+    Changed;
+  end
+  else
+    inherited Assign(Source);
+end;
+
+procedure TFLUIGridLayoutSettings.Changed;
+begin
+  if Assigned(FOnChange) then
+    FOnChange(Self);
+end;
+
+procedure TFLUIGridLayoutSettings.SetMaxColumns(const Value: Integer);
+begin
+  if FMaxColumns <> Value then
+  begin
+    FMaxColumns := Value;
+    Changed;
+  end;
+end;
+
+procedure TFLUIGridLayoutSettings.SetGap(const Value: Integer);
+begin
+  if FGap <> Value then
+  begin
+    FGap := Value;
+    Changed;
+  end;
+end;
+
+procedure TFLUIGridLayoutSettings.SetSingleColumnAsRow(const Value: Boolean);
+begin
+  if FSingleColumnAsRow <> Value then
+  begin
+    FSingleColumnAsRow := Value;
+    Changed;
+  end;
+end;
+
+procedure TFLUIGridLayoutSettings.SetItemWidth(const Value: Integer);
+begin
+  if FItemWidth <> Value then
+  begin
+    FItemWidth := Value;
+    Changed;
+  end;
+end;
+
+procedure TFLUIGridLayoutSettings.SetItemHeight(const Value: Integer);
+begin
+  if FItemHeight <> Value then
+  begin
+    FItemHeight := Value;
+    Changed;
+  end;
+end;
+
+procedure TFLUIGridLayoutSettings.SetRowItemHeight(const Value: Integer);
+begin
+  if FRowItemHeight <> Value then
+  begin
+    FRowItemHeight := Value;
+    Changed;
+  end;
+end;
+
 
 end.
 

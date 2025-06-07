@@ -93,12 +93,12 @@ begin
   if (csLoading in ComponentState) or (FGridLayout = nil) then
     Exit;
 
+  // 1. Coletar apenas os controles visíveis
   VisibleControls := TList.Create;
   try
     for I := 0 to ControlCount - 1 do
       if (Controls[I] is TWinControl) and Controls[I].Visible then
         VisibleControls.Add(Controls[I]);
-
 
     VisibleControlCount := VisibleControls.Count;
     if VisibleControlCount = 0 then Exit;

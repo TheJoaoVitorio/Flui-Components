@@ -93,42 +93,44 @@ begin
   if (csLoading in ComponentState) or (FGridLayout = nil) then
     Exit;
 
+  // 1. Coletar apenas os controles visíveis
   VisibleControls := TList.Create;
   try
     for I := 0 to ControlCount - 1 do
       if (Controls[I] is TWinControl) and Controls[I].Visible then
         VisibleControls.Add(Controls[I]);
 
-
     VisibleControlCount := VisibleControls.Count;
     if VisibleControlCount = 0 then Exit;
 
-
+    // 2. Determinar o número de colunas
     ColumnCount := Trunc((Width - Padding.Left - Padding.Right + FGridLayout.Gap) / (FGridLayout.ItemWidth + FGridLayout.Gap));
     if ColumnCount > FGridLayout.MaxColumns then
       ColumnCount := FGridLayout.MaxColumns;
     if ColumnCount < 1 then
       ColumnCount := 1;
 
+    // 3. Iterar por LINHAS para aplicar o alinhamento
     RowStartIndex := 0;
     while RowStartIndex < VisibleControlCount do
     begin
+      // Determina quantos itens estão nesta linha específica
       RowItemCount := Min(ColumnCount, VisibleControlCount - RowStartIndex);
       Row := RowStartIndex div ColumnCount;
 
-
+      // Determina a largura de cada item na linha
       if (RowItemCount = 1) then
         ItemW := Width - Padding.Left - Padding.Right
       else
         ItemW := Trunc((Width - Padding.Left - Padding.Right - (RowItemCount - 1) * FGridLayout.Gap) / RowItemCount);
 
-
+      // Ajuste de largura fixa se o alinhamento não estica os itens
       if FGridLayout.Alignment <> TFLUIGridAlign.flaLeft then
       begin
           ItemW := FGridLayout.ItemWidth;
       end;
 
-
+      // Calcular largura total do conteúdo e os espaçamentos baseados no alinhamento
       TotalContentWidth := (RowItemCount * ItemW) + (Max(0, RowItemCount - 1) * FGridLayout.Gap);
       StartOffset := 0;
       ActualGap := FGridLayout.Gap;
