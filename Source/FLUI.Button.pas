@@ -25,7 +25,11 @@ type
     FIsPressed: Boolean;
     FBorderSettings: TFLUIBorderSettings;
     FButtonColorSettings: TFLUIButtonColorSettings;
+    FImage: TFLUIImage;
+    FJustifyContent: TFLUIJustifyContent;
 
+    procedure SetImage(const Value: TFLUIImage);
+    procedure SetJustifyContent(const Value: TFLUIJustifyContent);
     procedure SetCaption(const Value: string);
     procedure SetContainedFontColor(const Value: TColor);
     procedure SetDarkColor(const Value: TColor);
@@ -55,6 +59,8 @@ type
     property Caption: string read FCaption write SetCaption;
     property ButtonColor: TFLUIButtonColorSettings read FButtonColorSettings write SetButtonColorSettings;
     property BorderSettings: TFLUIBorderSettings read FBorderSettings write SetBorderSettings;
+    property Image: TFLUIImage read FImage write SetImage;
+    property JustifyContent: TFLUIJustifyContent read FJustifyContent write SetJustifyContent default jcfCenter;
 
     property ContainedFontColor: TColor read FContainedFontColor write SetContainedFontColor default clHighlightText;
     property DarkColor: TColor read FDarkColor write SetDarkColor default clBlack;
@@ -140,6 +146,11 @@ begin
   FButtonColorSettings := TFLUIButtonColorSettings.Create;
   FButtonColorSettings.OnChange := SettingsChanged;
 
+  FImage := TFLUIImage.Create;
+  FImage.OnChange := SettingsChanged;
+
+  FJustifyContent := jcfCenter;
+
   FContainedFontColor := clHighlightText;
   FDarkColor := clBlack;
   FDarkFontColor := clWhite;
@@ -165,6 +176,12 @@ begin
     FButtonColorSettings.Free;
     FButtonColorSettings := nil;
   end;
+  if Assigned(FImage) then
+  begin
+    FImage.OnChange := nil;
+    FImage.Free;
+    FImage := nil;
+  end;
   inherited Destroy;
 end;
 
@@ -181,6 +198,20 @@ end;
 procedure TFLUIButton.SetButtonColorSettings(const Value: TFLUIButtonColorSettings);
 begin
   FButtonColorSettings.Assign(Value);
+end;
+
+procedure TFLUIButton.SetImage(const Value: TFLUIImage);
+begin
+  FImage.Assign(Value);
+end;
+
+procedure TFLUIButton.SetJustifyContent(const Value: TFLUIJustifyContent);
+begin
+  if FJustifyContent <> Value then
+  begin
+    FJustifyContent := Value;
+    Invalidate;
+  end;
 end;
 
 procedure TFLUIButton.SetCaption(const Value: string);
@@ -564,20 +595,14 @@ begin
     else
       PathInset := 0.0;
 
-    if LUseGradientBorderEnabled and (LCurrentBorderThickness > 0) then
-      PathDrawRect := LGPRectClient
-    else
-      PathDrawRect := MakeRect(LGPRectClient.X + PathInset, LGPRectClient.Y + PathInset,
-                             LGPRectClient.Width - 2 * PathInset, LGPRectClient.Height - 2 * PathInset);
+    PathDrawRect := MakeRect(LGPRectClient.X + PathInset, LGPRectClient.Y + PathInset,
+                           LGPRectClient.Width - 2 * PathInset, LGPRectClient.Height - 2 * PathInset);
 
     if PathDrawRect.Width < 0 then PathDrawRect.Width := 0;
     if PathDrawRect.Height < 0 then PathDrawRect.Height := 0;
 
     var RadiusForFillPath: Single;
-    if LUseGradientBorderEnabled and (LCurrentBorderThickness > 0) then
-         RadiusForFillPath := LCurrentRadiusEffective
-    else
-        RadiusForFillPath := Max(0, LCurrentRadiusEffective - PathInset);
+    RadiusForFillPath := Max(0, LCurrentRadiusEffective - PathInset);
 
     LGPFillPath := CreateGPRoundedRectPath(PathDrawRect, RadiusForFillPath);
     try
@@ -636,29 +661,142 @@ begin
           LGPBorderPath.Free;
         end;
       end
-      else
+      else if LCurrentBorderColorSolid <> clNone then
       begin
-        LGPBorderPath := CreateGPRoundedRectBorderPath(LGPRectClient, LCurrentRadiusEffective, LCurrentBorderThickness.ToSingle);
+        LGPPen := TGPPen.Create(ColorToARGB(LCurrentBorderColorSolid), LCurrentBorderThickness.ToSingle);
         try
-          if LGPBorderPath.GetPointCount > 0 then
-          begin
-            LGPBrush := TGPSolidBrush.Create(ColorToARGB(LCurrentBorderColorSolid));
-            try
-              LGPGraphics.FillPath(LGPBrush, LGPBorderPath);
-            finally
-              LGPBrush.Free;
-            end;
+          case LCurrentBorderStyle of
+            psDash: LGPPen.SetDashStyle(DashStyleDash);
+            psDot: LGPPen.SetDashStyle(DashStyleDot);
+            psDashDot: LGPPen.SetDashStyle(DashStyleDashDot);
+            psDashDotDot: LGPPen.SetDashStyle(DashStyleDashDotDot);
+          else
+            LGPPen.SetDashStyle(DashStyleSolid);
           end;
+          // Use the same LGPFillPath that was created for the background fill
+          LGPGraphics.DrawPath(LGPPen, LGPFillPath);
         finally
-          LGPBorderPath.Free;
+          LGPPen.Free;
         end;
       end;
     end;
 
+    var
+      ContentRect, ImageRect, TextRect: TRect;
+      ImageVisible: Boolean;
+      CaptionToDraw: string;
+      TextSize: TSize;
+      ImageWidth, ImageHeight, Spacing, TotalContentWidth, FreeSpace, StartX, InterItemSpacing: Integer;
+
+    CaptionToDraw := FCaption;
+    ContentRect := LRectVCL;
+    ImageVisible := Assigned(FImage) and FImage.Visible and Assigned(FImage.Picture.Graphic) and (FImage.Picture.Width > 0);
+
+    // Get dimensions
+    if ImageVisible then
+    begin
+      ImageWidth := FImage.Picture.Width;
+      ImageHeight := FImage.Picture.Height;
+      Spacing := FImage.Spacing;
+      if FImage.Position = ipCenter then
+      begin
+        CaptionToDraw := '';
+        Spacing := 0;
+      end;
+    end else
+    begin
+      ImageWidth := 0;
+      ImageHeight := 0;
+      Spacing := 0;
+    end;
+
+    if Length(CaptionToDraw) > 0 then
+      GetTextExtentPoint32(Canvas.Handle, PChar(CaptionToDraw), Length(CaptionToDraw), TextSize)
+    else
+      TextSize := TSize.Create(0,0);
+
+    // --- Layout Calculation ---
+    if FImage.Position in [ipTop, ipBottom] and ImageVisible then
+    begin
+      // Vertical Layout: JustifyContent applies to horizontal alignment of each item
+      // Horizontally align image
+      FreeSpace := ContentRect.Width - ImageWidth;
+      case FJustifyContent of
+        jcfFlexStart: StartX := ContentRect.Left;
+        jcfCenter, jcfSpaceAround, jcfSpaceEvenly: StartX := ContentRect.Left + FreeSpace div 2;
+        jcfFlexEnd, jcfSpaceBetween: StartX := ContentRect.Left + FreeSpace;
+      end;
+      if FImage.Position = ipTop then
+        ImageRect := Rect(StartX, ContentRect.Top + Spacing, StartX + ImageWidth, ContentRect.Top + Spacing + ImageHeight)
+      else
+        ImageRect := Rect(StartX, ContentRect.Bottom - Spacing - ImageHeight, StartX + ImageWidth, ContentRect.Bottom - Spacing);
+
+      // Horizontally align text
+      FreeSpace := ContentRect.Width - TextSize.cx;
+      case FJustifyContent of
+        jcfFlexStart: StartX := ContentRect.Left;
+        jcfCenter, jcfSpaceAround, jcfSpaceEvenly: StartX := ContentRect.Left + FreeSpace div 2;
+        jcfFlexEnd, jcfSpaceBetween: StartX := ContentRect.Left + FreeSpace;
+      end;
+      if FImage.Position = ipTop then
+        TextRect := Rect(StartX, ImageRect.Bottom + Spacing, StartX + TextSize.cx, ContentRect.Bottom)
+      else
+        TextRect := Rect(StartX, ContentRect.Top, StartX + TextSize.cx, ImageRect.Top - Spacing);
+    end
+    else
+    begin
+      // Horizontal Layout
+      TotalContentWidth := ImageWidth + TextSize.cx;
+      if ImageVisible and (Length(CaptionToDraw) > 0) then
+        TotalContentWidth := TotalContentWidth + Spacing;
+
+      FreeSpace := ContentRect.Width - TotalContentWidth;
+      StartX := ContentRect.Left;
+      InterItemSpacing := Spacing;
+
+      case FJustifyContent of
+        jcfFlexStart: StartX := ContentRect.Left;
+        jcfCenter, jcfSpaceAround, jcfSpaceEvenly: StartX := ContentRect.Left + FreeSpace div 2;
+        jcfFlexEnd: StartX := ContentRect.Left + FreeSpace;
+        jcfSpaceBetween:
+          begin
+            StartX := ContentRect.Left;
+            if ImageVisible and (Length(CaptionToDraw) > 0) then
+              InterItemSpacing := Spacing + FreeSpace
+            else
+              InterItemSpacing := Spacing;
+          end;
+      end;
+
+      var CurrentX := StartX;
+      if FImage.Position = ipRight then
+      begin // Text first
+        TextRect := Rect(CurrentX, ContentRect.Top, CurrentX + TextSize.cx, ContentRect.Bottom);
+        CurrentX := CurrentX + TextSize.cx + InterItemSpacing;
+        ImageRect := Rect(CurrentX, ContentRect.Top + (ContentRect.Height - ImageHeight) div 2, 0, 0);
+        ImageRect.Right := ImageRect.Left + ImageWidth;
+        ImageRect.Bottom := ImageRect.Top + ImageHeight;
+      end
+      else // Image first (ipLeft, ipCenter, or no image)
+      begin
+        ImageRect := Rect(CurrentX, ContentRect.Top + (ContentRect.Height - ImageHeight) div 2, 0, 0);
+        ImageRect.Right := ImageRect.Left + ImageWidth;
+        ImageRect.Bottom := ImageRect.Top + ImageHeight;
+        if ImageVisible then CurrentX := CurrentX + ImageWidth + InterItemSpacing;
+        TextRect := Rect(CurrentX, ContentRect.Top, CurrentX + TextSize.cx, ContentRect.Bottom);
+      end;
+    end;
+
+    // --- Drawing ---
     Canvas.Brush.Style := bsClear;
     Canvas.Font.Color := LCurrentTextColor;
-    TextFlags := DT_CENTER or DT_VCENTER or DT_SINGLELINE or DT_NOCLIP;
-    DrawText(Canvas.Handle, PChar(FCaption), Length(FCaption), LRectVCL, TextFlags);
+    TextFlags := DT_VCENTER or DT_SINGLELINE or DT_NOCLIP;
+
+    if ImageVisible then
+      Canvas.Draw(ImageRect.Left, ImageRect.Top, FImage.Picture.Graphic);
+
+    if Length(CaptionToDraw) > 0 then
+      DrawText(Canvas.Handle, PChar(CaptionToDraw), -1, TextRect, TextFlags);
 
     if Focused and Enabled and not (csDesigning in ComponentState) then
     begin

@@ -12,6 +12,7 @@ type
   TFLUIGradientColor = class;
   TFLUIButtonColorSettings = class;
   TFLUIBorderSettings = class;
+  TFLUIImage = class;
 
   TFLUIGradientColor = class(TPersistent)
   private
@@ -88,6 +89,36 @@ type
     property FillColor: TColor read FFillColor write SetFillColor default clBtnFace;
     property Gradient: TFLUIGradientColor read FGradient write SetGradient;
     property ButtonType: TFLUIButtonType read FButtonType write SetButtonType default TFLUIButtonType.fbtContained;
+    property OnChange: TNotifyEvent read FOnChange write FOnChange;
+  end;
+
+  TFLUIJustifyContent = (jcfFlexStart, jcfFlexEnd, jcfCenter, jcfSpaceBetween, jcfSpaceAround, jcfSpaceEvenly);
+
+  TFLUIImagePosition = (ipLeft, ipTop, ipRight, ipBottom, ipCenter);
+
+  TFLUIImage = class(TPersistent)
+  private
+    FOnChange: TNotifyEvent;
+    FPicture: TPicture;
+    FPosition: TFLUIImagePosition;
+    FSpacing: Integer;
+    FVisible: Boolean;
+    procedure SetPicture(const Value: TPicture);
+    procedure SetPosition(const Value: TFLUIImagePosition);
+    procedure SetSpacing(const Value: Integer);
+    procedure SetVisible(const Value: Boolean);
+    procedure PictureChanged(Sender: TObject);
+  protected
+    procedure Changed; virtual;
+  public
+    constructor Create;
+    destructor Destroy; override;
+    procedure Assign(Source: TPersistent); override;
+  published
+    property Visible: Boolean read FVisible write SetVisible default False;
+    property Picture: TPicture read FPicture write SetPicture;
+    property Position: TFLUIImagePosition read FPosition write SetPosition default ipLeft;
+    property Spacing: Integer read FSpacing write SetSpacing default 4;
     property OnChange: TNotifyEvent read FOnChange write FOnChange;
   end;
 
@@ -344,6 +375,81 @@ begin
   if FButtonType <> Value then
   begin
     FButtonType := Value;
+    Changed;
+  end;
+end;
+
+{ TFLUIImage }
+
+constructor TFLUIImage.Create;
+begin
+  inherited Create;
+  FPicture := TPicture.Create;
+  FPicture.OnChange := PictureChanged;
+  FVisible := False;
+  FPosition := ipLeft;
+  FSpacing := 4;
+end;
+
+destructor TFLUIImage.Destroy;
+begin
+  FPicture.Free;
+  inherited Destroy;
+end;
+
+procedure TFLUIImage.Assign(Source: TPersistent);
+begin
+  if Source is TFLUIImage then
+  begin
+    Self.FVisible := TFLUIImage(Source).FVisible;
+    Self.FPicture.Assign(TFLUIImage(Source).FPicture);
+    Self.FPosition := TFLUIImage(Source).FPosition;
+    Self.FSpacing := TFLUIImage(Source).FSpacing;
+    Self.Changed;
+  end
+  else
+    inherited Assign(Source);
+end;
+
+procedure TFLUIImage.Changed;
+begin
+  if Assigned(FOnChange) then
+    FOnChange(Self);
+end;
+
+procedure TFLUIImage.PictureChanged(Sender: TObject);
+begin
+  Changed;
+end;
+
+procedure TFLUIImage.SetPicture(const Value: TPicture);
+begin
+  FPicture.Assign(Value);
+end;
+
+procedure TFLUIImage.SetPosition(const Value: TFLUIImagePosition);
+begin
+  if FPosition <> Value then
+  begin
+    FPosition := Value;
+    Changed;
+  end;
+end;
+
+procedure TFLUIImage.SetSpacing(const Value: Integer);
+begin
+  if FSpacing <> Value then
+  begin
+    FSpacing := Value;
+    Changed;
+  end;
+end;
+
+procedure TFLUIImage.SetVisible(const Value: Boolean);
+begin
+  if FVisible <> Value then
+  begin
+    FVisible := Value;
     Changed;
   end;
 end;
