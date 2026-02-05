@@ -1,4 +1,4 @@
-﻿unit FLUI.Button;
+unit FLUI.Button;
 
 interface
 
@@ -10,36 +10,37 @@ uses
   Winapi.GDIPOBJ, Winapi.GDIPAPI, Winapi.GDIPUTIL;
 
 type
+  TFLUIButtonRender = class;
+
   TFLUIButton = class(TCustomControl)
   private
-    FCaption: string;
+    FRender: TFLUIButtonRender;
     FOnClick: TNotifyEvent;
-    FContainedFontColor: TColor;
-    FDarkColor: TColor;
-    FDarkFontColor: TColor;
-    FLightColor: TColor;
-    FLightFontColor: TColor;
-    FHoverColor: TColor;
-    FPressedColor: TColor;
-    FIsHovering: Boolean;
-    FIsPressed: Boolean;
-    FBorderSettings: TFLUIBorderSettings;
-    FButtonColorSettings: TFLUIButtonColorSettings;
-    FImage: TFLUIImage;
-    FJustifyContent: TFLUIJustifyContent;
 
-    procedure SetImage(const Value: TFLUIImage);
-    procedure SetJustifyContent(const Value: TFLUIJustifyContent);
+    function GetCaption: string;
     procedure SetCaption(const Value: string);
+    function GetContainedFontColor: TColor;
     procedure SetContainedFontColor(const Value: TColor);
+    function GetDarkColor: TColor;
     procedure SetDarkColor(const Value: TColor);
+    function GetDarkFontColor: TColor;
     procedure SetDarkFontColor(const Value: TColor);
+    function GetLightColor: TColor;
     procedure SetLightColor(const Value: TColor);
+    function GetLightFontColor: TColor;
     procedure SetLightFontColor(const Value: TColor);
+    function GetHoverColor: TColor;
     procedure SetHoverColor(const Value: TColor);
+    function GetPressedColor: TColor;
     procedure SetPressedColor(const Value: TColor);
+    function GetBorderSettings: TFLUIBorderSettings;
     procedure SetBorderSettings(const Value: TFLUIBorderSettings);
+    function GetButtonColorSettings: TFLUIButtonColorSettings;
     procedure SetButtonColorSettings(const Value: TFLUIButtonColorSettings);
+    function GetImage: TFLUIImage;
+    procedure SetImage(const Value: TFLUIImage);
+    function GetJustifyContent: TFLUIJustifyContent;
+    procedure SetJustifyContent(const Value: TFLUIJustifyContent);
 
   protected
     procedure Paint; override;
@@ -48,27 +49,25 @@ type
     procedure CMMouseEnter(var Message: TMessage); message CM_MOUSEENTER;
     procedure CMMouseLeave(var Message: TMessage); message CM_MOUSELEAVE;
     procedure CMEnabledChanged(var Message: TMessage); message CM_ENABLEDCHANGED;
-    procedure SettingsChanged(Sender: TObject);
-    function CreateGPRoundedRectPath(ARect: TGPRectF; ARadius: Single): TGPGraphicsPath;
-    function CreateGPRoundedRectBorderPath(AOuterRect: TGPRectF; AOuterRadius: Single; ABorderThickness: Single): TGPGraphicsPath;
 
   public
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
-  published
-    property Caption: string read FCaption write SetCaption;
-    property ButtonColor: TFLUIButtonColorSettings read FButtonColorSettings write SetButtonColorSettings;
-    property BorderSettings: TFLUIBorderSettings read FBorderSettings write SetBorderSettings;
-    property Image: TFLUIImage read FImage write SetImage;
-    property JustifyContent: TFLUIJustifyContent read FJustifyContent write SetJustifyContent default jcfCenter;
 
-    property ContainedFontColor: TColor read FContainedFontColor write SetContainedFontColor default clHighlightText;
-    property DarkColor: TColor read FDarkColor write SetDarkColor default clBlack;
-    property DarkFontColor: TColor read FDarkFontColor write SetDarkFontColor default clWhite;
-    property LightColor: TColor read FLightColor write SetLightColor default clBtnFace;
-    property LightFontColor: TColor read FLightFontColor write SetLightFontColor default clBtnText;
-    property HoverColor: TColor read FHoverColor write SetHoverColor default clNone;
-    property PressedColor: TColor read FPressedColor write SetPressedColor default clNone;
+  published
+    property Caption: string read GetCaption write SetCaption;
+    property ButtonColor: TFLUIButtonColorSettings read GetButtonColorSettings write SetButtonColorSettings;
+    property BorderSettings: TFLUIBorderSettings read GetBorderSettings write SetBorderSettings;
+    property Image: TFLUIImage read GetImage write SetImage;
+    property JustifyContent: TFLUIJustifyContent read GetJustifyContent write SetJustifyContent default jcfCenter;
+
+    property ContainedFontColor: TColor read GetContainedFontColor write SetContainedFontColor default clHighlightText;
+    property DarkColor: TColor read GetDarkColor write SetDarkColor default clBlack;
+    property DarkFontColor: TColor read GetDarkFontColor write SetDarkFontColor default clWhite;
+    property LightColor: TColor read GetLightColor write SetLightColor default clBtnFace;
+    property LightFontColor: TColor read GetLightFontColor write SetLightFontColor default clBtnText;
+    property HoverColor: TColor read GetHoverColor write SetHoverColor default clNone;
+    property PressedColor: TColor read GetPressedColor write SetPressedColor default clNone;
 
     property Align;
     property Anchors;
@@ -87,6 +86,83 @@ type
     property ParentColor;
     property TabOrder;
     property TabStop default False;
+  end;
+
+  /// <summary>
+  /// Handles the rendering and visual state management for TFLUIButton.
+  /// Separates the visual logic from the component wrapper, following the pattern
+  /// used in the StyledComponents library (e.g., TStyledButtonRender).
+  /// </summary>
+  TFLUIButtonRender = class(TObject)
+  private
+    FOwnerControl: TCustomControl;
+
+    // Properties moved from TFLUIButton
+    FCaption: string;
+    FContainedFontColor: TColor;
+    FDarkColor: TColor;
+    FDarkFontColor: TColor;
+    FLightColor: TColor;
+    FLightFontColor: TColor;
+    FHoverColor: TColor;
+    FPressedColor: TColor;
+    FBorderSettings: TFLUIBorderSettings;
+    FButtonColorSettings: TFLUIButtonColorSettings;
+    FImage: TFLUIImage;
+    FJustifyContent: TFLUIJustifyContent;
+
+    // State management
+    FIsHovering: Boolean;
+    FIsPressed: Boolean;
+
+    procedure SettingsChanged(Sender: TObject);
+    procedure Invalidate;
+
+    // Helper drawing methods
+    function CreateGPRoundedRectPath(ARect: TGPRectF; ARadius: Single): TGPGraphicsPath;
+    function CreateGPRoundedRectBorderPath(AOuterRect: TGPRectF; AOuterRadius: Single; ABorderThickness: Single): TGPGraphicsPath;
+
+  public
+    constructor Create(AOwner: TCustomControl);
+    destructor Destroy; override;
+
+    procedure DrawButton(ACanvas: TCanvas);
+    procedure MouseDown(Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
+    procedure MouseUp(Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
+    procedure MouseEnter;
+    procedure MouseLeave;
+    procedure EnabledChanged;
+
+    // Property Setters
+    procedure SetCaption(const Value: string);
+    procedure SetContainedFontColor(const Value: TColor);
+    procedure SetDarkColor(const Value: TColor);
+    procedure SetDarkFontColor(const Value: TColor);
+    procedure SetLightColor(const Value: TColor);
+    procedure SetLightFontColor(const Value: TColor);
+    procedure SetHoverColor(const Value: TColor);
+    procedure SetPressedColor(const Value: TColor);
+    procedure SetBorderSettings(const Value: TFLUIBorderSettings);
+    procedure SetButtonColorSettings(const Value: TFLUIButtonColorSettings);
+    procedure SetImage(const Value: TFLUIImage);
+    procedure SetJustifyContent(const Value: TFLUIJustifyContent);
+
+    // Property Getters
+    property Caption: string read FCaption;
+    property ContainedFontColor: TColor read FContainedFontColor;
+    property DarkColor: TColor read FDarkColor;
+    property DarkFontColor: TColor read FDarkFontColor;
+    property LightColor: TColor read FLightColor;
+    property LightFontColor: TColor read FLightFontColor;
+    property HoverColor: TColor read FHoverColor;
+    property PressedColor: TColor read FPressedColor;
+    property BorderSettings: TFLUIBorderSettings read FBorderSettings;
+    property ButtonColorSettings: TFLUIButtonColorSettings read FButtonColorSettings;
+    property Image: TFLUIImage read FImage;
+    property JustifyContent: TFLUIJustifyContent read FJustifyContent;
+
+    property IsHovering: Boolean read FIsHovering;
+    property IsPressed: Boolean read FIsPressed;
   end;
 
 procedure Register;
@@ -128,29 +204,15 @@ begin
   Result := TColor(RGB(R, G, B));
 end;
 
-{ TFLUIButton }
+{ TFLUIButtonRender }
 
-constructor TFLUIButton.Create(AOwner: TComponent);
+constructor TFLUIButtonRender.Create(AOwner: TCustomControl);
 begin
-  inherited Create(AOwner);
-  ControlStyle := ControlStyle + [csOpaque, csClickEvents, csCaptureMouse, csReplicatable, csDoubleClicks];
+  inherited Create;
+  FOwnerControl := AOwner;
 
-  Width := 100;
-  Height := 30;
-  TabStop := False;
-  FCaption := Name;
-
-  FBorderSettings := TFLUIBorderSettings.Create;
-  FBorderSettings.OnChange := SettingsChanged;
-
-  FButtonColorSettings := TFLUIButtonColorSettings.Create;
-  FButtonColorSettings.OnChange := SettingsChanged;
-
-  FImage := TFLUIImage.Create;
-  FImage.OnChange := SettingsChanged;
-
-  FJustifyContent := jcfCenter;
-
+  // Default values
+  FCaption := FOwnerControl.Name;
   FContainedFontColor := clHighlightText;
   FDarkColor := clBlack;
   FDarkFontColor := clWhite;
@@ -160,61 +222,50 @@ begin
   FPressedColor := clNone;
   FIsHovering := False;
   FIsPressed := False;
+  FJustifyContent := jcfCenter;
+
+  FBorderSettings := TFLUIBorderSettings.Create;
+  FBorderSettings.OnChange := SettingsChanged;
+
+  FButtonColorSettings := TFLUIButtonColorSettings.Create;
+  FButtonColorSettings.OnChange := SettingsChanged;
+
+  FImage := TFLUIImage.Create;
+  FImage.OnChange := SettingsChanged;
 end;
 
-destructor TFLUIButton.Destroy;
+destructor TFLUIButtonRender.Destroy;
 begin
   if Assigned(FBorderSettings) then
   begin
     FBorderSettings.OnChange := nil;
     FBorderSettings.Free;
-    FBorderSettings := nil;
   end;
   if Assigned(FButtonColorSettings) then
   begin
     FButtonColorSettings.OnChange := nil;
     FButtonColorSettings.Free;
-    FButtonColorSettings := nil;
   end;
   if Assigned(FImage) then
   begin
     FImage.OnChange := nil;
     FImage.Free;
-    FImage := nil;
   end;
   inherited Destroy;
 end;
 
-procedure TFLUIButton.SettingsChanged(Sender: TObject);
+procedure TFLUIButtonRender.SettingsChanged(Sender: TObject);
 begin
   Invalidate;
 end;
 
-procedure TFLUIButton.SetBorderSettings(const Value: TFLUIBorderSettings);
+procedure TFLUIButtonRender.Invalidate;
 begin
-  FBorderSettings.Assign(Value);
+  if Assigned(FOwnerControl) and not (csDestroying in FOwnerControl.ComponentState) then
+    FOwnerControl.Invalidate;
 end;
 
-procedure TFLUIButton.SetButtonColorSettings(const Value: TFLUIButtonColorSettings);
-begin
-  FButtonColorSettings.Assign(Value);
-end;
-
-procedure TFLUIButton.SetImage(const Value: TFLUIImage);
-begin
-  FImage.Assign(Value);
-end;
-
-procedure TFLUIButton.SetJustifyContent(const Value: TFLUIJustifyContent);
-begin
-  if FJustifyContent <> Value then
-  begin
-    FJustifyContent := Value;
-    Invalidate;
-  end;
-end;
-
-procedure TFLUIButton.SetCaption(const Value: string);
+procedure TFLUIButtonRender.SetCaption(const Value: string);
 begin
   if FCaption <> Value then
   begin
@@ -223,7 +274,7 @@ begin
   end;
 end;
 
-procedure TFLUIButton.SetContainedFontColor(const Value: TColor);
+procedure TFLUIButtonRender.SetContainedFontColor(const Value: TColor);
 begin
   if FContainedFontColor <> Value then
   begin
@@ -232,7 +283,7 @@ begin
   end;
 end;
 
-procedure TFLUIButton.SetDarkColor(const Value: TColor);
+procedure TFLUIButtonRender.SetDarkColor(const Value: TColor);
 begin
   if FDarkColor <> Value then
   begin
@@ -241,7 +292,7 @@ begin
   end;
 end;
 
-procedure TFLUIButton.SetDarkFontColor(const Value: TColor);
+procedure TFLUIButtonRender.SetDarkFontColor(const Value: TColor);
 begin
   if FDarkFontColor <> Value then
   begin
@@ -250,7 +301,7 @@ begin
   end;
 end;
 
-procedure TFLUIButton.SetLightColor(const Value: TColor);
+procedure TFLUIButtonRender.SetLightColor(const Value: TColor);
 begin
   if FLightColor <> Value then
   begin
@@ -259,7 +310,7 @@ begin
   end;
 end;
 
-procedure TFLUIButton.SetLightFontColor(const Value: TColor);
+procedure TFLUIButtonRender.SetLightFontColor(const Value: TColor);
 begin
   if FLightFontColor <> Value then
   begin
@@ -268,7 +319,7 @@ begin
   end;
 end;
 
-procedure TFLUIButton.SetHoverColor(const Value: TColor);
+procedure TFLUIButtonRender.SetHoverColor(const Value: TColor);
 begin
   if FHoverColor <> Value then
   begin
@@ -278,7 +329,7 @@ begin
   end;
 end;
 
-procedure TFLUIButton.SetPressedColor(const Value: TColor);
+procedure TFLUIButtonRender.SetPressedColor(const Value: TColor);
 begin
   if FPressedColor <> Value then
   begin
@@ -288,20 +339,42 @@ begin
   end;
 end;
 
-procedure TFLUIButton.CMMouseEnter(var Message: TMessage);
+procedure TFLUIButtonRender.SetBorderSettings(const Value: TFLUIBorderSettings);
 begin
-  inherited;
-  if not (csDesigning in ComponentState) then
+  FBorderSettings.Assign(Value);
+end;
+
+procedure TFLUIButtonRender.SetButtonColorSettings(const Value: TFLUIButtonColorSettings);
+begin
+  FButtonColorSettings.Assign(Value);
+end;
+
+procedure TFLUIButtonRender.SetImage(const Value: TFLUIImage);
+begin
+  FImage.Assign(Value);
+end;
+
+procedure TFLUIButtonRender.SetJustifyContent(const Value: TFLUIJustifyContent);
+begin
+  if FJustifyContent <> Value then
+  begin
+    FJustifyContent := Value;
+    Invalidate;
+  end;
+end;
+
+procedure TFLUIButtonRender.MouseEnter;
+begin
+  if not (csDesigning in FOwnerControl.ComponentState) then
   begin
     FIsHovering := True;
     Invalidate;
   end;
 end;
 
-procedure TFLUIButton.CMMouseLeave(var Message: TMessage);
+procedure TFLUIButtonRender.MouseLeave;
 begin
-  inherited;
-  if not (csDesigning in ComponentState) then
+  if not (csDesigning in FOwnerControl.ComponentState) then
   begin
     FIsHovering := False;
     if FIsPressed then
@@ -310,41 +383,30 @@ begin
   end;
 end;
 
-procedure TFLUIButton.CMEnabledChanged(var Message: TMessage);
+procedure TFLUIButtonRender.EnabledChanged;
 begin
-  inherited;
   Invalidate;
 end;
 
-procedure TFLUIButton.MouseDown(Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
+procedure TFLUIButtonRender.MouseDown(Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
 begin
-  inherited;
-  if (Button = mbLeft) and Enabled and not (csDesigning in ComponentState) then
+  if (Button = mbLeft) and FOwnerControl.Enabled and not (csDesigning in FOwnerControl.ComponentState) then
   begin
     FIsPressed := True;
     Invalidate;
   end;
 end;
 
-procedure TFLUIButton.MouseUp(Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
-var
-  WasPressed: Boolean;
+procedure TFLUIButtonRender.MouseUp(Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
 begin
-  WasPressed := FIsPressed;
   if FIsPressed then
   begin
     FIsPressed := False;
     Invalidate;
   end;
-  inherited;
-  if WasPressed and Enabled and (Button = mbLeft) and PtInRect(ClientRect, Point(X, Y)) then
-  begin
-    if not (csDesigning in ComponentState) then
-      Click;
-  end;
 end;
 
-function TFLUIButton.CreateGPRoundedRectPath(ARect: TGPRectF; ARadius: Single): TGPGraphicsPath;
+function TFLUIButtonRender.CreateGPRoundedRectPath(ARect: TGPRectF; ARadius: Single): TGPGraphicsPath;
 var
   LPath: TGPGraphicsPath;
   LRadiusEffective: Single;
@@ -384,7 +446,7 @@ begin
   Result := LPath;
 end;
 
-function TFLUIButton.CreateGPRoundedRectBorderPath(AOuterRect: TGPRectF; AOuterRadius: Single; ABorderThickness: Single): TGPGraphicsPath;
+function TFLUIButtonRender.CreateGPRoundedRectBorderPath(AOuterRect: TGPRectF; AOuterRadius: Single; ABorderThickness: Single): TGPGraphicsPath;
 var
   OuterPath, InnerPath: TGPGraphicsPath;
   InnerRect: TGPRectF;
@@ -413,8 +475,7 @@ begin
   InnerPath.Free;
 end;
 
-
-procedure TFLUIButton.Paint;
+procedure TFLUIButtonRender.DrawButton(ACanvas: TCanvas);
 var
   LRectVCL: TRect;
   LGPGraphics: TGPGraphics;
@@ -435,14 +496,14 @@ var
   PathDrawRect: TGPRectF;
   PathInset: Single;
 begin
-  LRectVCL := ClientRect;
+  LRectVCL := FOwnerControl.ClientRect;
   if (LRectVCL.Width <= 0) or (LRectVCL.Height <= 0) then Exit;
 
-  LGPGraphics := TGPGraphics.Create(Canvas.Handle);
+  LGPGraphics := TGPGraphics.Create(ACanvas.Handle);
   try
     LGPGraphics.SetSmoothingMode(SmoothingModeAntiAlias);
     LGPGraphics.SetPixelOffsetMode(PixelOffsetModeHalf);
-    Canvas.Font.Assign(Self.Font);
+    ACanvas.Font.Assign(FOwnerControl.Font);
 
     LCurrentRadiusEffective := FBorderSettings.Radius;
     LCurrentBorderColorSolid := FBorderSettings.BorderColor;
@@ -463,9 +524,9 @@ begin
       LCurrentFillGradientEnd := FButtonColorSettings.Gradient.EndColor;
     end;
     LCurrentButtonType := FButtonColorSettings.ButtonType;
-    LCurrentTextColor := Self.Font.Color;
+    LCurrentTextColor := FOwnerControl.Font.Color;
 
-    if not Enabled then
+    if not FOwnerControl.Enabled then
     begin
       LCurrentFillColor := clBtnShadow;
       LCurrentTextColor := clGrayText;
@@ -517,7 +578,7 @@ begin
       var TempUseGradientFill: Boolean := LUseGradientFill;
       var TempUseGradientBorder: Boolean := LUseGradientBorderEnabled;
 
-      if FIsPressed and not (csDesigning in ComponentState) then
+      if FIsPressed and not (csDesigning in FOwnerControl.ComponentState) then
       begin
         if FPressedColor <> clNone then
         begin
@@ -543,7 +604,7 @@ begin
         if LCurrentButtonType = fbtOutline then
             LCurrentTextColor := TempBorderColorSolid;
       end
-      else if FIsHovering and not (csDesigning in ComponentState) then
+      else if FIsHovering and not (csDesigning in FOwnerControl.ComponentState) then
       begin
         if FHoverColor <> clNone then
         begin
@@ -579,7 +640,7 @@ begin
       LUseGradientFill := TempUseGradientFill;
       LUseGradientBorderEnabled := TempUseGradientBorder;
 
-      if (LCurrentButtonType = fbtOutline) and (FIsHovering or FIsPressed) and Enabled and not (csDesigning in ComponentState) then
+      if (LCurrentButtonType = fbtOutline) and (FIsHovering or FIsPressed) and FOwnerControl.Enabled and not (csDesigning in FOwnerControl.ComponentState) then
       begin
         if LUseGradientBorderEnabled then
              LCurrentTextColor := LCurrentBorderGradientStart
@@ -606,7 +667,7 @@ begin
 
     LGPFillPath := CreateGPRoundedRectPath(PathDrawRect, RadiusForFillPath);
     try
-      if LUseGradientFill and Enabled then
+      if LUseGradientFill and FOwnerControl.Enabled then
       begin
         if (PathDrawRect.Width > 0) and (PathDrawRect.Height > 0) then
         begin
@@ -640,7 +701,7 @@ begin
 
     if LCurrentBorderThickness > 0 then
     begin
-      if LUseGradientBorderEnabled and Enabled then
+      if LUseGradientBorderEnabled and FOwnerControl.Enabled then
       begin
         LGPBorderPath := CreateGPRoundedRectBorderPath(LGPRectClient, LCurrentRadiusEffective, LCurrentBorderThickness);
         try
@@ -711,7 +772,7 @@ begin
     end;
 
     if Length(CaptionToDraw) > 0 then
-      GetTextExtentPoint32(Canvas.Handle, PChar(CaptionToDraw), Length(CaptionToDraw), TextSize)
+      GetTextExtentPoint32(ACanvas.Handle, PChar(CaptionToDraw), Length(CaptionToDraw), TextSize)
     else
       TextSize := TSize.Create(0,0);
 
@@ -788,17 +849,17 @@ begin
     end;
 
     // --- Drawing ---
-    Canvas.Brush.Style := bsClear;
-    Canvas.Font.Color := LCurrentTextColor;
+    ACanvas.Brush.Style := bsClear;
+    ACanvas.Font.Color := LCurrentTextColor;
     TextFlags := DT_VCENTER or DT_SINGLELINE or DT_NOCLIP;
 
     if ImageVisible then
-      Canvas.Draw(ImageRect.Left, ImageRect.Top, FImage.Picture.Graphic);
+      ACanvas.Draw(ImageRect.Left, ImageRect.Top, FImage.Picture.Graphic);
 
     if Length(CaptionToDraw) > 0 then
-      DrawText(Canvas.Handle, PChar(CaptionToDraw), -1, TextRect, TextFlags);
+      DrawText(ACanvas.Handle, PChar(CaptionToDraw), -1, TextRect, TextFlags);
 
-    if Focused and Enabled and not (csDesigning in ComponentState) then
+    if FOwnerControl.Focused and FOwnerControl.Enabled and not (csDesigning in FOwnerControl.ComponentState) then
     begin
       var FocusDrawRectVCL := LRectVCL;
       var FocusBorderInset: Integer;
@@ -815,20 +876,20 @@ begin
       if (FocusDrawRectVCL.Right > FocusDrawRectVCL.Left) and
          (FocusDrawRectVCL.Bottom > FocusDrawRectVCL.Top) then
       begin
-        Canvas.Pen.Color := clGrayText;
-        Canvas.Pen.Style := psDot;
-        Canvas.Pen.Width := 1;
-        Canvas.Brush.Style := bsClear;
+        ACanvas.Pen.Color := clGrayText;
+        ACanvas.Pen.Style := psDot;
+        ACanvas.Pen.Width := 1;
+        ACanvas.Brush.Style := bsClear;
         if LCurrentRadiusEffective > 0 then
         begin
           var FocusRadius: Integer;
           FocusRadius := Max(0, Round(LCurrentRadiusEffective) - FocusBorderInset);
-          Canvas.RoundRect(FocusDrawRectVCL.Left, FocusDrawRectVCL.Top,
+          ACanvas.RoundRect(FocusDrawRectVCL.Left, FocusDrawRectVCL.Top,
                            FocusDrawRectVCL.Right, FocusDrawRectVCL.Bottom,
                            FocusRadius, FocusRadius);
         end
         else
-          Canvas.FrameRect(FocusDrawRectVCL);
+          ACanvas.FrameRect(FocusDrawRectVCL);
       end;
     end;
   finally
@@ -844,5 +905,3 @@ end;
 initialization
 finalization
 end.
-
-
